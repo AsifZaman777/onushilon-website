@@ -1,0 +1,1191 @@
+"use client";
+import { useRef, useState, useEffect } from "react";
+import {
+  motion, AnimatePresence, useScroll, useTransform, useSpring,
+  useMotionValue, useInView, animate, useReducedMotion,
+} from "framer-motion";
+import { IMG, LOGO, PHONE, PHONE_HREF } from "../lib/assets";
+
+const NAV = [
+  ["home", "Home"],
+  ["story", "Our story"],
+  ["courses", "Courses"],
+  ["practice", "Practice"],
+  ["moments", "Class moments"],
+  ["why", "Why us"],
+  ["voices", "Students"],
+  ["faq", "FAQ"],
+  ["join", "Enrol"],
+];
+
+const COURSES = [
+  {
+    id: "hsc",
+    t: "HSC Physics & Chemistry",
+    c: "Academic",
+    d: "6 months",
+    l: "Live + recorded",
+    p: "৳4,500",
+    i: "c1",
+    mentor: "Engr. Tanvir Ahmed (BUET)",
+    schedule: "Sun, Tue & Thu • 8:00 PM",
+    seats: "14 seats left",
+    topics: ["Kinematics & Dynamics", "Electricity & Magnetism", "Organic Chemistry Mechanisms", "Weekly CQ & MCQ Mock Tests"],
+  },
+  {
+    id: "spoken",
+    t: "Spoken English",
+    c: "Language",
+    d: "3 months",
+    l: "Live classes",
+    p: "৳2,800",
+    i: "c2",
+    mentor: "Farhana Kabir (IELTS 8.5)",
+    schedule: "Mon & Wed • 7:30 PM",
+    seats: "8 seats left",
+    topics: ["Phonics & Accent Reduction", "Everyday Conversation Fluency", "Public Speaking Mastery", "1-on-1 Speaking Drill Breakouts"],
+  },
+  {
+    id: "webdev",
+    t: "Web Development Basics",
+    c: "Skills",
+    d: "4 months",
+    l: "Project based",
+    p: "৳6,000",
+    i: "c3",
+    mentor: "Arif Hossain (Senior Frontend Dev)",
+    schedule: "Fri & Sat • 9:00 PM",
+    seats: "6 seats left",
+    topics: ["HTML5 & Modern Flex/Grid", "JavaScript ES6+ & DOM Logic", "React & Interactive UI Components", "Building 5 Real Portfolio Projects"],
+  },
+  {
+    id: "ssc",
+    t: "SSC Mathematics",
+    c: "Academic",
+    d: "5 months",
+    l: "Live + recorded",
+    p: "৳3,800",
+    i: "c4",
+    mentor: "Shafiqul Islam (DU Applied Math)",
+    schedule: "Sat, Mon & Wed • 6:30 PM",
+    seats: "12 seats left",
+    topics: ["Algebra, Sets & Functions", "Trigonometric Identities & Heights", "Geometry Proofs with Shortcuts", "10 Years Past Board Paper Drills"],
+  },
+  {
+    id: "ielts",
+    t: "IELTS Preparation",
+    c: "Language",
+    d: "2 months",
+    l: "Mock tests",
+    p: "৳5,200",
+    i: "c5",
+    mentor: "Nadia Zaman (British Council Certified)",
+    schedule: "Tue, Thu & Sat • 8:30 PM",
+    seats: "5 seats left",
+    topics: ["Listening Section Speed Tactics", "Reading Skimming & Scanning Hacks", "Writing Task 1 & 2 Personalized Reviews", "Live 1-on-1 Speaking Mock Evaluations"],
+  },
+  {
+    id: "design",
+    t: "Graphic Design",
+    c: "Skills",
+    d: "3 months",
+    l: "Studio sessions",
+    p: "৳4,900",
+    i: "c6",
+    mentor: "Kamrul Hasan (Art Director)",
+    schedule: "Sun & Wed • 9:00 PM",
+    seats: "9 seats left",
+    topics: ["Design Principles & Typography", "Adobe Illustrator Vector Mastery", "Photoshop Retouching & Mockups", "Real Client Freelance Studio Simulation"],
+  },
+];
+
+const MOMENTS = [
+  {
+    id: "m1",
+    t: "Live Data Structures & Logic Studio",
+    c: "Live Classes",
+    tag: "Computer Science & Logic",
+    img: "m1",
+    desc: "Mentor guiding university students through recursive tree traversal algorithms on the studio whiteboard.",
+  },
+  {
+    id: "m2",
+    t: "Peer Collaboration & Pair Programming",
+    c: "Peer Collaboration",
+    tag: "Web Dev & UI Design",
+    img: "m2",
+    desc: "Students debugging React component state and testing API endpoints together during our weekly practice sprint.",
+  },
+  {
+    id: "m3",
+    t: "Dedicated 1-on-1 Concept Clarification",
+    c: "1-on-1 Mentorship",
+    tag: "Academic Foundation",
+    img: "m3",
+    desc: "Every learner receives personalized step-by-step attention to ensure every equation and principle is understood.",
+  },
+  {
+    id: "m4",
+    t: "Batch Graduation & Milestone Celebration",
+    c: "Celebrations",
+    tag: "Certified Completion",
+    img: "m4",
+    desc: "Celebrating our proud graduates who completed their daily practice sets and verified portfolio capstones.",
+  },
+];
+
+const PRACTICE_TASKS = [
+  {
+    subject: "HSC Physics",
+    topic: "Work, Power & Energy",
+    question: "A body of mass 2 kg is dropped from a height of 10m. What is its kinetic energy just before hitting the ground? (Take g = 9.8 m/s²)",
+    options: ["98 Joules", "196 Joules", "392 Joules", "49 Joules"],
+    correct: 1,
+    explanation: "By conservation of mechanical energy, Potential Energy at top = Kinetic Energy at bottom. KE = m × g × h = 2 kg × 9.8 m/s² × 10m = 196 Joules.",
+    mentorNote: "Classic conservation of energy! Remember: you don't even need to calculate velocity first.",
+  },
+  {
+    subject: "Spoken English",
+    topic: "Natural Fluency",
+    question: "Which response sounds most natural when a colleague thanks you for helping them with an important project?",
+    options: [
+      "No problem, don't mention it at all!",
+      "I was strictly obligated by my duty to assist.",
+      "Glad I could help! Let me know if you need anything else.",
+      "It is my extreme formal pleasure and honor.",
+    ],
+    correct: 2,
+    explanation: "'Glad I could help!' is warm, polite, and universally used in both conversational and professional workplace environments.",
+    mentorNote: "Tone is as vital as grammar! Natural friendly phrasing leaves the strongest positive impression.",
+  },
+  {
+    subject: "Web Development",
+    topic: "Modern CSS",
+    question: "What is the cleanest modern CSS rule to center a child item both horizontally and vertically inside its container?",
+    options: [
+      "display: flex; justify-content: center; align-items: center;",
+      "margin: auto; float: center; align: center;",
+      "text-align: center; vertical-align: middle;",
+      "position: absolute; left: 50%; right: 50%;",
+    ],
+    correct: 0,
+    explanation: "Flexbox with 'justify-content: center' (main axis) and 'align-items: center' (cross axis) centers children predictably across any viewport.",
+    mentorNote: "Spot on! Flexbox or CSS Grid ('display: grid; place-items: center;') are current industry best practices.",
+  },
+];
+
+const FAQS = [
+  {
+    q: "What happens if I miss a live class?",
+    a: "Every live class is recorded in HD and posted on your student portal within 2 hours. You get lifetime access to all recordings, the mentor's slide annotations, and daily practice sets.",
+  },
+  {
+    q: "How does the 24-hour mentor feedback work?",
+    a: "After each lesson, you solve and submit your practice task on the student portal. Your assigned subject mentor reviews your steps, calculations, or code line-by-line and leaves personalized written and audio notes within 24 hours.",
+  },
+  {
+    q: "What payment methods are accepted?",
+    a: "We accept bKash, Nagad, Rocket, all major local credit/debit cards, and bank transfers. For courses 4 months or longer, you can pay in two convenient monthly installments with 0% extra fee.",
+  },
+  {
+    q: "Will I receive a verified certificate upon completion?",
+    a: "Yes! Students who submit at least 80% of daily practice tasks and pass the final mock exam receive a verified digital certificate shareable on LinkedIn and your CV.",
+  },
+  {
+    q: "Can I pause or transfer batches if my college exams clash?",
+    a: "Yes! We provide one free batch pause or transfer per student so your learning journey adapts seamlessly around your academic exam schedule.",
+  },
+];
+
+const STORY = [
+  ["2014", "Five students, one rented room, and a rule: every lesson ends with practice."],
+  ["2018", "We opened a second branch and began recording every class for revision."],
+  ["2022", "Onushilon went online. Students from 40 districts joined live."],
+  ["Today", "Over 12,000 learners practise with us every week."],
+];
+
+const VOICES = [
+  ["Practice every day finally made physics click for me. My mentor checked my work, not just my answers.", "Nusrat Jahan", "HSC 2025, Dhaka", "t1"],
+  ["I joined from Rangpur with weak English. Six months later I spoke at my college seminar with full confidence.", "Rafiul Islam", "Spoken English graduate", "t2"],
+  ["The project classes gave me a real portfolio. I landed my first freelance frontend contract before the course even ended.", "Tasnim Akter", "Web Development graduate", "t3"],
+];
+
+/* Image with a coloured placeholder until a file path is set in lib/assets.js */
+const Pic = ({ k, alt = "", cls = "", style, children }) => (
+  <div className={`ph ${cls}`} style={style}>
+    {IMG[k] && <img src={IMG[k]} alt={alt} loading="lazy" />}
+    {children}
+  </div>
+);
+
+function Count({ to, suffix = "" }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true });
+  const v = useMotionValue(0);
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!inView) return;
+    const c = animate(v, to, { duration: 2, ease: "easeOut", onUpdate: (x) => setN(Math.round(x)) });
+    return c.stop;
+  }, [inView, to, v]);
+  return <span ref={ref}>{n.toLocaleString()}{suffix}</span>;
+}
+
+function Tilt({ children, className, onClick }) {
+  const rx = useMotionValue(0), ry = useMotionValue(0);
+  const sx = useSpring(rx, { stiffness: 200, damping: 18 }), sy = useSpring(ry, { stiffness: 200, damping: 18 });
+  const move = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    ry.set(((e.clientX - r.left) / r.width - 0.5) * 10);
+    rx.set(-((e.clientY - r.top) / r.height - 0.5) * 10);
+  };
+  return (
+    <motion.div
+      className={className}
+      style={{ rotateX: sx, rotateY: sy, transformPerspective: 900 }}
+      onMouseMove={move}
+      onMouseLeave={() => { rx.set(0); ry.set(0); }}
+      onClick={onClick}
+      layout
+      initial={{ opacity: 0, scale: 0.94 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.94 }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function Nav() {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState("home");
+  const [scrolled, setScrolled] = useState(false);
+  const { scrollYProgress, scrollY } = useScroll();
+  const bar = useSpring(scrollYProgress, { stiffness: 120, damping: 28 });
+
+  useEffect(() => {
+    setScrolled(scrollY.get() > 100);
+    const unsub = scrollY.on("change", (latest) => {
+      setScrolled(latest > 100);
+    });
+    return () => unsub();
+  }, [scrollY]);
+
+  useEffect(() => {
+    const io = new IntersectionObserver(
+      (es) => es.forEach((e) => e.isIntersecting && setActive(e.target.id)),
+      { rootMargin: "-45% 0px -50% 0px" }
+    );
+    NAV.forEach(([id]) => document.getElementById(id) && io.observe(document.getElementById(id)));
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <>
+      <motion.div className="bar" style={{ scaleX: bar }} />
+      <AnimatePresence>
+        {scrolled ? (
+          <motion.nav
+            key="full-nav"
+            className="nav"
+            aria-label="Main"
+            initial={{ y: -70, opacity: 0, x: "-50%" }}
+            animate={{ y: 0, opacity: 1, x: "-50%" }}
+            exit={{ y: -70, opacity: 0, x: "-50%" }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <a href="#home" className="logo">
+              {LOGO ? <img src={LOGO} alt="Onushilon" /> : <><i>অ</i>Onushilon</>}
+            </a>
+            <div className="links">
+              {NAV.slice(1, 8).map(([id, l]) => (
+                <a key={id} href={`#${id}`} className={active === id ? "on" : ""}>{l}</a>
+              ))}
+              <a href={PHONE_HREF} className="btn-call" aria-label="Call counsellor now">📞 Call now</a>
+              <a href="#join" className="btn" style={{ padding: "10px 22px" }}>Enrol now</a>
+            </div>
+            <button className="burger" onClick={() => setOpen(!open)} aria-label="Menu" aria-expanded={open}>{open ? "✕" : "☰"}</button>
+          </motion.nav>
+        ) : (
+          <motion.button
+            key="hero-menu-btn"
+            className={`hero-menu-btn ${open ? "open" : ""}`}
+            onClick={() => setOpen(!open)}
+            aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
+            initial={{ opacity: 0, scale: 0.8, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: -10 }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.94 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <span className="burger-icon">
+              <span className="line l1" />
+              <span className="line l2" />
+              <span className="line l3" />
+            </span>
+          </motion.button>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className="sheet"
+            initial={{ clipPath: "circle(0% at 95% 4%)" }}
+            animate={{ clipPath: "circle(150% at 95% 4%)" }}
+            exit={{ clipPath: "circle(0% at 95% 4%)" }}
+            transition={{ duration: 0.6, ease: [0.76, 0, 0.24, 1] }}
+          >
+            <button className="sheet-close" onClick={() => setOpen(false)} aria-label="Close menu">✕</button>
+            {NAV.map(([id, l], i) => (
+              <motion.a
+                key={id}
+                href={`#${id}`}
+                onClick={() => setOpen(false)}
+                initial={{ y: 40, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.25 + i * 0.05 }}
+              >
+                {l}
+              </motion.a>
+            ))}
+            <motion.a
+              href={PHONE_HREF}
+              className="btn-call sheet-call"
+              onClick={() => setOpen(false)}
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.7 }}
+            >
+              📞 Call counsellor ({PHONE})
+            </motion.a>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+function Hero() {
+  const ref = useRef(null);
+  const reduce = useReducedMotion();
+  const { scrollYProgress: p } = useScroll({ target: ref, offset: ["start start", "end start"] });
+  const k = reduce ? 0 : 1;
+  const y1 = useTransform(p, [0, 1], [0, -260 * k]);
+  const y2 = useTransform(p, [0, 1], [0, 180 * k]);
+  const y3 = useTransform(p, [0, 1], [0, -120 * k]);
+  const r1 = useTransform(p, [0, 1], [-6, 14 * k]);
+  const ty = useTransform(p, [0, 1], [0, 120 * k]);
+  const fade = useTransform(p, [0.5, 1], [1, 0]);
+  const words = ["Learn", "by", "practice."];
+
+  return (
+    <section id="home" className="hero" ref={ref}>
+      <div className="hero-in">
+        <motion.div className="glow" style={{ y: y2 }} />
+        <motion.div className="float f1" style={{ y: y1, rotate: r1 }}><Pic k="hero1" alt="Students in class" style={{ height: "100%", borderRadius: "inherit" }} /></motion.div>
+        <motion.div className="float f2" style={{ y: y2 }}><Pic k="hero2" cls="alt" style={{ height: "100%", borderRadius: "inherit" }} /></motion.div>
+        <motion.div className="float f3" style={{ y: y3 }}><Pic k="hero3" cls="alt2" style={{ height: "100%", borderRadius: "inherit" }} /></motion.div>
+        <motion.div className="float f4" style={{ y: y1 }}><Pic k="hero1" cls="alt" style={{ height: "100%", borderRadius: "inherit" }} /></motion.div>
+        <motion.div style={{ y: ty, opacity: fade, position: "relative", zIndex: 3, padding: "0 4vw" }}>
+          <h1>
+            {words.map((w, i) => (
+              <span key={w}>
+                <motion.span
+                  style={{ display: "block" }}
+                  initial={{ y: "110%" }}
+                  animate={{ y: 0 }}
+                  transition={{ duration: 1, delay: 0.15 + i * 0.12, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  {i === 2 ? <em>{w}</em> : w}
+                </motion.span>
+              </span>
+            ))}
+          </h1>
+          <motion.p className="sub" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}>
+            Onushilon Academy gives you expert mentors, live interactive classes and daily exercises, from SSC to job-ready tech skills.
+          </motion.p>
+          <motion.div className="cta" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.1 }}>
+            <a className="btn" href="#courses">Browse courses</a>
+            <a className="btn ghost" href="#practice">Try practice demo</a>
+            <a className="btn-call" href={PHONE_HREF} style={{ padding: "14px 22px", fontSize: "0.95rem" }}>📞 Call now</a>
+          </motion.div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function Marquee() {
+  const items = ["Live classes", "Daily practice", "Mock exams", "Mentor feedback", "Recorded lessons", "Study groups"];
+  const row = [...items, ...items];
+  return (
+    <div className="marq" aria-hidden>
+      <motion.div animate={{ x: ["0%", "-50%"] }} transition={{ duration: 28, ease: "linear", repeat: Infinity }} style={{ display: "inline-flex" }}>
+        {[0, 1].map((n) => <div key={n}>{row.map((t, i) => <span key={i}>{t} ✺</span>)}</div>)}
+      </motion.div>
+    </div>
+  );
+}
+
+function Story() {
+  const ref = useRef(null);
+  const { scrollYProgress: p } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const a = useTransform(p, [0, 1], [60, -60]);
+  const b = useTransform(p, [0, 1], [-80, 100]);
+  return (
+    <section id="story" ref={ref}>
+      <div className="wrap story">
+        <div className="imgs">
+          <motion.div className="a ph" style={{ y: a }}><Pic k="story" alt="Our first classroom" style={{ height: "100%" }} /></motion.div>
+          <motion.div className="b" style={{ y: b }}><Pic k="story2" cls="alt" style={{ height: "100%", borderRadius: "inherit" }} /></motion.div>
+        </div>
+        <div>
+          <motion.h2 className="h2" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            Onushilon means practice. We took it literally.
+          </motion.h2>
+          <p className="lead">We started because lectures alone never made anyone truly confident. Every course here is built around doing the work, getting detailed mentor feedback, and mastering the concept.</p>
+          <div className="tl">
+            {STORY.map(([y, t], i) => (
+              <motion.div key={y} initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: "-60px" }} transition={{ delay: i * 0.05 }}>
+                <b>{y}</b><p>{t}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Courses({ onOpenModal, onEnrol }) {
+  const cats = ["All", "Academic", "Language", "Skills"];
+  const [cat, setCat] = useState("All");
+  const [search, setSearch] = useState("");
+
+  const list = COURSES.filter((c) => {
+    const matchCat = cat === "All" || c.c === cat;
+    const q = search.trim().toLowerCase();
+    const matchSearch =
+      !q ||
+      c.t.toLowerCase().includes(q) ||
+      c.c.toLowerCase().includes(q) ||
+      c.mentor.toLowerCase().includes(q) ||
+      c.topics.some((tp) => tp.toLowerCase().includes(q));
+    return matchCat && matchSearch;
+  });
+
+  return (
+    <section id="courses" className="courses">
+      <div className="wrap">
+        <h2 className="h2">Pick a course and start this week</h2>
+        <p className="lead">New batches begin every month. Each course includes weekly practice sets and an expert mentor who reviews your progress.</p>
+        
+        <div className="courses-top">
+          <div className="tabs" role="tablist">
+            {cats.map((c) => (
+              <button key={c} role="tab" aria-selected={cat === c} className={`tab ${cat === c ? "on" : ""}`} onClick={() => setCat(c)}>
+                {cat === c && <motion.span layoutId="pill" className="pill" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
+                <span>{c}</span>
+              </button>
+            ))}
+          </div>
+          <div className="course-search">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Search courses, topics..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Search courses"
+            />
+          </div>
+        </div>
+
+        <motion.div className="grid" layout>
+          <AnimatePresence mode="popLayout">
+            {list.length > 0 ? (
+              list.map((c) => (
+                <Tilt key={c.t} className="card" onClick={() => onOpenModal(c)}>
+                  <div style={{ position: "relative" }}>
+                    <Pic k={c.i} alt={c.t} cls={c.c === "Language" ? "alt" : c.c === "Skills" ? "alt2" : ""} />
+                    <div className="card-badges">
+                      <span className="card-badge">{c.seats}</span>
+                    </div>
+                  </div>
+                  <div className="body">
+                    <div className="meta"><span>{c.c}</span><span>{c.d}</span></div>
+                    <h3>{c.t}</h3>
+                    <p style={{ opacity: 0.75, fontSize: "0.92rem" }}>🗓️ {c.schedule}</p>
+                    <div className="row">
+                      <span className="price">{c.p}</span>
+                      <div style={{ display: "flex", gap: "8px" }} onClick={(e) => e.stopPropagation()}>
+                        <button className="btn-outline" onClick={() => onOpenModal(c)}>Details</button>
+                        <button className="btn-primary" onClick={() => onEnrol(c.t)}>Enrol</button>
+                      </div>
+                    </div>
+                  </div>
+                </Tilt>
+              ))
+            ) : (
+              <div className="empty-courses">
+                <h3>No courses found matching "{search}"</h3>
+                <p style={{ opacity: 0.75, marginTop: 8 }}>Try clearing your search query or switching categories.</p>
+                <button className="btn" onClick={() => { setSearch(""); setCat("All"); }} style={{ marginTop: 16 }}>
+                  Reset Filters
+                </button>
+              </div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function CourseModal({ course, onClose, onEnrol }) {
+  if (!course) return null;
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="modal-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      >
+        <motion.div
+          className="modal-card"
+          initial={{ scale: 0.9, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.9, opacity: 0, y: 20 }}
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button className="modal-close" onClick={onClose} aria-label="Close modal">✕</button>
+          <div>
+            <span className="modal-tag">{course.c} • {course.d}</span>
+            <div className="modal-header">
+              <h3>{course.t}</h3>
+            </div>
+          </div>
+          <div className="modal-mentor">
+            <span>🧑‍🏫 <b>Lead Mentor:</b> {course.mentor}</span>
+          </div>
+          <div className="modal-info-grid">
+            <div className="modal-info-item">
+              <span>Live Schedule</span>
+              <b>{course.schedule}</b>
+            </div>
+            <div className="modal-info-item">
+              <span>Format & Batch</span>
+              <b>{course.l} • {course.seats}</b>
+            </div>
+          </div>
+          <div className="modal-topics">
+            <h4>Key Syllabus & Practice Topics:</h4>
+            <ul>
+              {course.topics.map((tp, idx) => (
+                <li key={idx}><i>✓</i> {tp}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="modal-actions">
+            <div>
+              <span style={{ fontSize: "0.85rem", opacity: 0.7, display: "block" }}>Complete Course Fee</span>
+              <span className="modal-price">{course.p}</span>
+            </div>
+            <button className="btn" onClick={() => onEnrol(course.t)} style={{ padding: "12px 28px" }}>
+              Proceed to Enrol →
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+function PracticeArena() {
+  const [activeTab, setActiveTab] = useState(0);
+  const [selectedOpt, setSelectedOpt] = useState(null);
+  const [streak, setStreak] = useState(0);
+  const [completed, setCompleted] = useState({});
+
+  const task = PRACTICE_TASKS[activeTab];
+
+  const handleSelect = (idx) => {
+    if (selectedOpt !== null) return;
+    setSelectedOpt(idx);
+    if (idx === task.correct) {
+      setStreak((s) => s + 1);
+      setCompleted((c) => ({ ...c, [activeTab]: true }));
+    }
+  };
+
+  const handleTabChange = (idx) => {
+    setActiveTab(idx);
+    setSelectedOpt(null);
+  };
+
+  const letters = ["A", "B", "C", "D"];
+
+  return (
+    <section id="practice" className="practice-sec">
+      <div className="wrap">
+        <div style={{ textAlign: "center", maxWidth: "680px", margin: "0 auto" }}>
+          <span className="quiz-badge">Interactive Demo</span>
+          <h2 className="h2" style={{ margin: "12px auto 0" }}>Experience Onushilon: Try a Practice Task</h2>
+          <p className="lead" style={{ margin: "14px auto 0" }}>
+            The best way to understand our methodology is to experience it. Solve a question below and see how instant mentor feedback works.
+          </p>
+        </div>
+
+        <div className="practice-container">
+          <div className="subject-tabs">
+            {PRACTICE_TASKS.map((t, idx) => (
+              <button
+                key={t.subject}
+                className={`sub-tab ${activeTab === idx ? "active" : ""}`}
+                onClick={() => handleTabChange(idx)}
+              >
+                {t.subject} {completed[idx] ? "✓" : ""}
+              </button>
+            ))}
+          </div>
+
+          <div className="quiz-header">
+            <span style={{ fontSize: "0.9rem", color: "var(--ink2)", fontWeight: 600 }}>
+              Topic: <b>{task.topic}</b>
+            </span>
+            <span className="quiz-streak">
+              🔥 Streak: <b>{streak} solved</b>
+            </span>
+          </div>
+
+          <h3 className="quiz-question">{task.question}</h3>
+
+          <div className="options-list">
+            {task.options.map((opt, idx) => {
+              let stateCls = "";
+              if (selectedOpt !== null) {
+                if (idx === task.correct) stateCls = "correct";
+                else if (idx === selectedOpt) stateCls = "wrong";
+              }
+              return (
+                <button
+                  key={idx}
+                  className={`opt-btn ${stateCls}`}
+                  onClick={() => handleSelect(idx)}
+                  disabled={selectedOpt !== null}
+                >
+                  <span className="opt-letter">{letters[idx]}</span>
+                  <span>{opt}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <AnimatePresence>
+            {selectedOpt !== null && (
+              <motion.div
+                className="mentor-feedback"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 15 }}
+              >
+                <div className="mentor-head">
+                  <span>🧑‍🏫 <b>{selectedOpt === task.correct ? "Excellent work! Mentor feedback:" : "Mentor guidance:"}</b></span>
+                </div>
+                <p>{task.explanation}</p>
+                <p style={{ fontStyle: "italic", opacity: 0.85 }}>“{task.mentorNote}”</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="practice-actions">
+            <span style={{ fontSize: "0.9rem", opacity: 0.75 }}>
+              {selectedOpt === null ? "👉 Select an answer above to reveal mentor guidance" : "Ready for regular daily practice?"}
+            </span>
+            <a href="#courses" className="btn" style={{ padding: "10px 22px", fontSize: "0.95rem" }}>
+              Explore Full Courses →
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Moments({ onOpenLightbox }) {
+  const cats = ["All Moments", "Live Classes", "Peer Collaboration", "1-on-1 Mentorship", "Celebrations"];
+  const [cat, setCat] = useState("All Moments");
+
+  const list = cat === "All Moments" ? MOMENTS : MOMENTS.filter((m) => m.c === cat);
+
+  return (
+    <section id="moments" className="moments-sec">
+      <div className="wrap">
+        <div style={{ maxWidth: "700px" }}>
+          <h2 className="h2">Class moments & life at Onushilon</h2>
+          <p className="lead">
+            Take an authentic look inside our interactive classrooms, peer coding labs, and celebration days across Bangladesh.
+          </p>
+        </div>
+
+        <div className="moments-top">
+          <div className="tabs" role="tablist">
+            {cats.map((c) => (
+              <button
+                key={c}
+                role="tab"
+                aria-selected={cat === c}
+                className={`tab ${cat === c ? "on" : ""}`}
+                onClick={() => setCat(c)}
+              >
+                {cat === c && (
+                  <motion.span
+                    layoutId="moments-pill"
+                    className="pill"
+                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                  />
+                )}
+                <span>{c}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <motion.div className="moments-grid" layout>
+          <AnimatePresence mode="popLayout">
+            {list.map((m, idx) => (
+              <motion.div
+                key={m.id}
+                className="moment-card"
+                layout
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.35 }}
+                onClick={() => onOpenLightbox(idx, list)}
+              >
+                <div className="moment-img-wrap">
+                  <Pic k={m.img} alt={m.t} />
+                  <span className="moment-badge">{m.tag}</span>
+                  <span className="moment-zoom-hint">🔍</span>
+                </div>
+                <div className="moment-body">
+                  <span style={{ fontSize: "0.82rem", color: "var(--gold)", fontWeight: 700 }}>{m.c}</span>
+                  <h3>{m.t}</h3>
+                  <p>{m.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function LightboxModal({ activeIndex, items, onClose, onNavigate }) {
+  if (activeIndex === null || !items || !items[activeIndex]) return null;
+  const current = items[activeIndex];
+
+  const prev = (e) => {
+    e.stopPropagation();
+    onNavigate((activeIndex - 1 + items.length) % items.length);
+  };
+
+  const next = (e) => {
+    e.stopPropagation();
+    onNavigate((activeIndex + 1) % items.length);
+  };
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="lightbox-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      >
+        <button className="lightbox-close" onClick={onClose} aria-label="Close lightbox">✕</button>
+        {items.length > 1 && (
+          <>
+            <button className="lightbox-nav-btn lightbox-prev" onClick={prev} aria-label="Previous moment">‹</button>
+            <button className="lightbox-nav-btn lightbox-next" onClick={next} aria-label="Next moment">›</button>
+          </>
+        )}
+        <motion.div
+          className="lightbox-card"
+          initial={{ scale: 0.92, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.92, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 320, damping: 26 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="lightbox-img-wrap">
+            <Pic k={current.img} alt={current.t} style={{ height: "480px" }} />
+          </div>
+          <div className="lightbox-info">
+            <div>
+              <span style={{ fontSize: "0.85rem", color: "var(--gold)", fontWeight: 700 }}>{current.c} • {current.tag}</span>
+              <h3 style={{ fontSize: "1.45rem", marginTop: 4 }}>{current.t}</h3>
+              <p style={{ opacity: 0.85, fontSize: "0.95rem", marginTop: 4 }}>{current.desc}</p>
+            </div>
+            <span style={{ opacity: 0.6, fontSize: "0.9rem" }}>{activeIndex + 1} of {items.length}</span>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+function Why() {
+  const items = [
+    ["Mentors who read your work", "Every submission gets personalized written and audio feedback within 24 hours."],
+    ["Learn at your pace", "Every live class is recorded in HD and posted with notes, formula sheets, and practice sets."],
+    ["Exams that feel real", "Monthly timed mock tests under board/exam conditions, with comprehensive score breakdowns."],
+  ];
+  return (
+    <section id="why">
+      <div className="wrap">
+        <div className="stats">
+          {[[12000, "+", "Active learners"], [85, "", "Expert mentors"], [40, "", "Districts reached"], [96, "%", "Finish their course"]].map(([n, s, l]) => (
+            <div key={l}><b><Count to={n} suffix={s} /></b><p>{l}</p></div>
+          ))}
+        </div>
+        <div style={{ marginTop: 110 }}>
+          <h2 className="h2">What you get when you join</h2>
+          <div className="why">
+            {items.map(([h, t], i) => (
+              <motion.div key={h} whileHover={{ y: -8 }} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
+                <h3>{h}</h3><p>{t}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Voices() {
+  const [i, setI] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused) return;
+    const t = setInterval(() => setI((x) => (x + 1) % VOICES.length), 6000);
+    return () => clearInterval(t);
+  }, [paused]);
+
+  const prev = () => setI((x) => (x - 1 + VOICES.length) % VOICES.length);
+  const next = () => setI((x) => (x + 1) % VOICES.length);
+
+  const [q, n, r, img] = VOICES[i];
+  return (
+    <section id="voices" className="tst">
+      <div className="wrap" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+        <h2 className="h2">Students say it better</h2>
+        <AnimatePresence mode="wait">
+          <motion.div key={i} className="tcard" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} transition={{ duration: 0.4 }}>
+            <Pic k={img} alt={n} cls="alt" />
+            <div>
+              <blockquote>“{q}”</blockquote>
+              <p style={{ marginTop: 16 }}><b>{n}</b>, {r}</p>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+        <div className="tcard-ctrls">
+          <div className="student-pills">
+            {VOICES.map(([_, name], k) => (
+              <button
+                key={k}
+                className={`student-pill ${k === i ? "active" : ""}`}
+                onClick={() => setI(k)}
+              >
+                <span>{name}</span>
+              </button>
+            ))}
+          </div>
+          <div className="arrow-btns">
+            <button className="arrow-btn" onClick={prev} aria-label="Previous review">‹</button>
+            <button className="arrow-btn" onClick={next} aria-label="Next review">›</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Faq() {
+  const [openIdx, setOpenIdx] = useState(0);
+
+  const toggle = (idx) => {
+    setOpenIdx(openIdx === idx ? null : idx);
+  };
+
+  return (
+    <section id="faq" className="faq-sec">
+      <div className="wrap">
+        <div style={{ textAlign: "center", maxWidth: "650px", margin: "0 auto" }}>
+          <h2 className="h2" style={{ margin: "0 auto" }}>Frequently asked questions</h2>
+          <p className="lead" style={{ margin: "14px auto 0" }}>
+            Got questions before enrolling? Here is everything you need to know about our batches, mentors, and policies.
+          </p>
+        </div>
+
+        <div className="faq-list">
+          {FAQS.map((faq, idx) => {
+            const isOpen = openIdx === idx;
+            return (
+              <div key={idx} className={`faq-item ${isOpen ? "open" : ""}`}>
+                <button
+                  className="faq-question"
+                  onClick={() => toggle(idx)}
+                  aria-expanded={isOpen}
+                >
+                  <span>{faq.q}</span>
+                  <span className="faq-icon">▾</span>
+                </button>
+                <AnimatePresence>
+                  {isOpen && (
+                    <motion.div
+                      className="faq-answer"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                      <p>{faq.a}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Join({ enrolledCourse }) {
+  const ref = useRef(null);
+  const { scrollYProgress: p } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const y = useTransform(p, [0, 1], ["-12%", "12%"]);
+  const [sent, setSent] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    course: enrolledCourse || COURSES[0].t,
+  });
+
+  useEffect(() => {
+    if (enrolledCourse) {
+      setFormData((prev) => ({ ...prev, course: enrolledCourse }));
+    }
+  }, [enrolledCourse]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setSent(true);
+  };
+
+  return (
+    <section id="join" className="cta-s" ref={ref} style={{ padding: 0 }}>
+      <motion.div className="cta-bg" style={{ y }}><Pic k="cta" /></motion.div>
+      <div className="wrap" style={{ padding: "100px 0" }}>
+        <h2 className="h2" style={{ maxWidth: "16ch" }}>Your next batch starts this week</h2>
+        <p className="lead">Reserve your seat now. A dedicated academic counsellor will connect with you to complete your batch onboarding.</p>
+        
+        {sent ? (
+          <motion.div
+            className="celebration-card"
+            initial={{ scale: 0.85, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 280, damping: 22 }}
+          >
+            <h3>🎉 Enrolment Request Received!</h3>
+            <p style={{ fontSize: "1.1rem" }}>
+              Thank you <b>{formData.name}</b>! We have reserved a provisional seat for <b>{formData.course}</b>.
+            </p>
+            <p style={{ opacity: 0.85, fontSize: "0.95rem" }}>
+              Our academic counsellor will reach out via WhatsApp/Phone at <b>{formData.phone}</b> and send batch details to <b>{formData.email}</b> within 24 hours.
+            </p>
+            <button
+              className="btn"
+              onClick={() => { setSent(false); }}
+              style={{ width: "fit-content", marginTop: "12px", padding: "10px 22px" }}
+            >
+              Enrol in another course
+            </button>
+          </motion.div>
+        ) : (
+          <form onSubmit={handleSubmit} className="join-grid">
+            <div>
+              <input
+                type="text"
+                required
+                placeholder="Full name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                aria-label="Full name"
+              />
+            </div>
+            <div>
+              <input
+                type="tel"
+                required
+                placeholder="Mobile / WhatsApp (+880)"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                aria-label="Phone number"
+              />
+            </div>
+            <div className="full">
+              <input
+                type="email"
+                required
+                placeholder="Your email address"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                aria-label="Email"
+              />
+            </div>
+            <div className="full">
+              <select
+                className="join-select"
+                value={formData.course}
+                onChange={(e) => setFormData({ ...formData, course: e.target.value })}
+                aria-label="Select course"
+              >
+                {COURSES.map((c) => (
+                  <option key={c.t} value={c.t} style={{ color: "var(--ink)" }}>
+                    {c.t} — {c.p} ({c.d})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="full" style={{ marginTop: "6px" }}>
+              <button className="btn" type="submit" style={{ padding: "16px 36px", fontSize: "1.05rem" }}>
+                Confirm Seat Reservation →
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function FloatingCallButton() {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <motion.div
+      className="floating-call-wrap"
+      initial={{ opacity: 0, scale: 0.8, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ delay: 0.8, duration: 0.4 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <a
+        href={PHONE_HREF}
+        className="floating-call-btn"
+        aria-label="Call Onushilon Academy counsellor"
+      >
+        <span className="call-pulse-ring" />
+        <span className="call-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+          </svg>
+        </span>
+        <span className="call-text">Call now</span>
+        <AnimatePresence>
+          {hovered && (
+            <motion.span
+              className="call-tooltip"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+            >
+              {PHONE}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </a>
+    </motion.div>
+  );
+}
+
+function Footer() {
+  return (
+    <footer>
+      <div className="wrap fg">
+        <div><b style={{ fontSize: "1.5rem" }}>Onushilon Academy</b><span style={{ opacity: 0.7 }}>Learn by practice.</span></div>
+        <div><b>Explore</b>{NAV.slice(1, 8).map(([id, l]) => <a key={id} href={`#${id}`}>{l}</a>)}</div>
+        <div>
+          <b>Contact</b>
+          <a href={PHONE_HREF} style={{ color: "var(--gold)", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            📞 {PHONE} (9 AM – 10 PM)
+          </a>
+          <span>hello@onushilon.example</span>
+          <span>Dhaka, Bangladesh</span>
+        </div>
+      </div>
+      <p className="wrap" style={{ marginTop: 40, opacity: 0.55 }}>© {new Date().getFullYear()} Onushilon Academy</p>
+    </footer>
+  );
+}
+
+export default function Page() {
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [enrolledCourse, setEnrolledCourse] = useState("");
+  const [lightbox, setLightbox] = useState({ index: null, items: [] });
+
+  const handleEnrolFromModal = (courseTitle) => {
+    setEnrolledCourse(courseTitle);
+    setSelectedCourse(null);
+    document.getElementById("join")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  return (
+    <main>
+      <Nav />
+      <Hero />
+      <Marquee />
+      <Story />
+      <Courses
+        onOpenModal={(course) => setSelectedCourse(course)}
+        onEnrol={handleEnrolFromModal}
+      />
+      <PracticeArena />
+      <Moments
+        onOpenLightbox={(idx, items) => setLightbox({ index: idx, items })}
+      />
+      <Why />
+      <Voices />
+      <Faq />
+      <Join enrolledCourse={enrolledCourse} />
+      <Footer />
+      <CourseModal
+        course={selectedCourse}
+        onClose={() => setSelectedCourse(null)}
+        onEnrol={handleEnrolFromModal}
+      />
+      <LightboxModal
+        activeIndex={lightbox.index}
+        items={lightbox.items}
+        onClose={() => setLightbox({ index: null, items: [] })}
+        onNavigate={(newIdx) => setLightbox((prev) => ({ ...prev, index: newIdx }))}
+      />
+      <FloatingCallButton />
+    </main>
+  );
+}
