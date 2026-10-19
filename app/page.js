@@ -149,7 +149,7 @@ const MENTORS = [
     dept: "Robotics & Tech",
     badge: "🤖",
     badgeFull: "Robotics Lab",
-    img: "/images/photos/robotic_class1.jpg",
+    img: "/images/photos/robotic_class1-thumb.webp",
     course: "Robotics & STEM Automation",
     stats: "6+ Yrs • 1,200+ Students",
     bio: "Passionate about empowering young innovators to design circuits, write clean microcontroller code, and construct functional autonomous bots from scratch.",
@@ -163,7 +163,7 @@ const MENTORS = [
     dept: "Creative Arts",
     badge: "🎨",
     badgeFull: "Fine Arts",
-    img: "/images/photos/art_class1.jpg",
+    img: "/images/photos/art_class1-thumb.webp",
     course: "Creative Arts & Painting Studio",
     stats: "8+ Yrs • 950+ Artists",
     bio: "Technique is learned through patient brushwork; vision is unlocked when mentors encourage freedom of expression.",
@@ -177,7 +177,7 @@ const MENTORS = [
     dept: "Academic & Science",
     badge: "🔬",
     badgeFull: "Science Lab",
-    img: "/images/photos/classroom1.jpg",
+    img: "/images/photos/classroom1-thumb.webp",
     course: "HSC Physics & Chemistry",
     stats: "9+ Yrs • 3,400+ Achievers",
     bio: "No memorizing formulas without visualizing the motion. Solve the physical logic first, and the numbers follow naturally.",
@@ -191,7 +191,7 @@ const MENTORS = [
     dept: "Robotics & Tech",
     badge: "💻",
     badgeFull: "Coding Lab",
-    img: "/images/photos/computer_learning.jpg",
+    img: "/images/photos/computer_learning-thumb.webp",
     course: "Web Development & Coding Basics",
     stats: "7+ Yrs • 1,500+ Devs Trained",
     bio: "You only learn code by writing bugs and fixing them live. We build real, deployable portfolio projects in every single sprint.",
@@ -205,7 +205,7 @@ const MENTORS = [
     dept: "Arts & Sports",
     badge: "🥋",
     badgeFull: "Karate Dojo",
-    img: "/images/photos/karate_class1.jpg",
+    img: "/images/photos/karate_class1-thumb.webp",
     course: "Karate & Self Defense Academy",
     stats: "10+ Yrs • 800+ Belts Graded",
     bio: "True karate is not about fighting; it builds unwavering focus, mental discipline, humility, and everyday courage.",
@@ -219,7 +219,7 @@ const MENTORS = [
     dept: "Language & Skills",
     badge: "🗣️",
     badgeFull: "Spoken Fluency",
-    img: "/images/photos/learn_with_fun.jpg",
+    img: "/images/photos/learn_with_fun-thumb.webp",
     course: "Spoken English & Fluency",
     stats: "5+ Yrs • 2,100+ Speakers",
     bio: "Fluency is a habit, not an exam. Our interactive drills break hesitation from day one and give students real stage confidence.",
@@ -233,7 +233,7 @@ const MENTORS = [
     dept: "Robotics & Tech",
     badge: "⚡",
     badgeFull: "Hardware Lab",
-    img: "/images/photos/harware_fix_learning.jpg",
+    img: "/images/photos/harware_fix_learning-thumb.webp",
     course: "Hardware, Circuits & Repair",
     stats: "6+ Yrs • 900+ Lab Grads",
     bio: "Understanding how motherboards, power supplies, and traces work demystifies technology and sparks genuine engineering curiosity.",
@@ -247,7 +247,7 @@ const MENTORS = [
     dept: "Academic & Science",
     badge: "📐",
     badgeFull: "Math Session",
-    img: "/images/photos/classroom3.jpg",
+    img: "/images/photos/classroom3-thumb.webp",
     course: "SSC Higher Mathematics",
     stats: "8+ Yrs • 2,800+ Achievers",
     bio: "Mathematics becomes joyous when you see the shortcut and the algebraic proof working together in harmony.",
@@ -261,7 +261,7 @@ const MENTORS = [
     dept: "Academic & Science",
     badge: "🌱",
     badgeFull: "Green Science",
-    img: "/images/photos/grow_with_green.jpg",
+    img: "/images/photos/grow_with_green-thumb.webp",
     course: "Young Green Innovators",
     stats: "7+ Yrs • 650+ Researchers",
     bio: "Nurturing ecological awareness through hands-on botanical experiments and scientific discovery creates responsible scientists.",
@@ -275,7 +275,7 @@ const MENTORS = [
     dept: "Robotics & Tech",
     badge: "⚙️",
     badgeFull: "IoT Automation",
-    img: "/images/photos/robotic_class3.jpg",
+    img: "/images/photos/robotic_class3-thumb.webp",
     course: "Robotics & STEM Automation",
     stats: "5+ Yrs • 780+ Builders",
     bio: "Connecting physical hardware to intelligent cloud dashboards gives students the superpower of building real-world smart devices.",
@@ -461,7 +461,7 @@ const VOICES = [
 /* Image with a coloured placeholder until a file path is set in lib/assets.js */
 const Pic = ({ k, alt = "", cls = "", style, children }) => (
   <div className={`ph ${cls}`} style={style}>
-    {IMG[k] && <img src={IMG[k]} alt={alt} loading="lazy" />}
+    {IMG[k] && <img src={IMG[k]} alt={alt} loading="lazy" decoding="async" />}
     {children}
   </div>
 );
@@ -676,6 +676,8 @@ function RisingHeroBox({
             alt={current.title}
             className="hero-card-img"
             loading="eager"
+            fetchPriority="high"
+            decoding="async"
           />
           <div className="hero-card-overlay">
             <span className="hero-badge">{current.badge}</span>
@@ -1090,6 +1092,9 @@ function Mentors({ onEnrol }) {
                         alt={m.name}
                         className="mentor-avatar-img"
                         loading="lazy"
+                        decoding="async"
+                        width="180"
+                        height="180"
                       />
                     </div>
 
@@ -1358,7 +1363,7 @@ function LightboxModal({ activeIndex, items, onClose, onNavigate }) {
         >
           <div className="lightbox-img-wrap">
             {imgSrc ? (
-              <img src={imgSrc} alt={title} style={{ width: "100%", maxHeight: "550px", objectFit: "contain", display: "block" }} />
+              <img src={imgSrc} alt={title} decoding="async" style={{ width: "100%", maxHeight: "550px", objectFit: "contain", display: "block" }} />
             ) : (
               <Pic k={current.img} alt={title} style={{ height: "480px" }} />
             )}
