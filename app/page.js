@@ -145,6 +145,7 @@ const MENTORS = [
     name: "Engr. Nayeem Siddique",
     role: "Robotics & STEM Lead",
     edu: "Mechatronics Engineer (BUET)",
+    university: "BUET",
     dept: "Robotics & Tech",
     badge: "🤖",
     badgeFull: "Robotics Lab",
@@ -158,6 +159,7 @@ const MENTORS = [
     name: "Shabnam Mustari",
     role: "Master Fine Arts Mentor",
     edu: "Faculty of Fine Arts (DU)",
+    university: "University of Dhaka (DU)",
     dept: "Creative Arts",
     badge: "🎨",
     badgeFull: "Fine Arts",
@@ -171,6 +173,7 @@ const MENTORS = [
     name: "Engr. Tanvir Ahmed",
     role: "Physics & Chemistry Lead",
     edu: "B.Sc. Engineering (BUET)",
+    university: "BUET",
     dept: "Academic & Science",
     badge: "🔬",
     badgeFull: "Science Lab",
@@ -184,6 +187,7 @@ const MENTORS = [
     name: "Arif Hossain",
     role: "Web & Software Lead",
     edu: "Senior Frontend Developer",
+    university: "SUST",
     dept: "Robotics & Tech",
     badge: "💻",
     badgeFull: "Coding Lab",
@@ -197,6 +201,7 @@ const MENTORS = [
     name: "Sensei Mahmudul Hasan",
     role: "Chief Martial Arts Sensei",
     edu: "Black Belt 3rd Dan Medalist",
+    university: "University of Dhaka (DU)",
     dept: "Arts & Sports",
     badge: "🥋",
     badgeFull: "Karate Dojo",
@@ -210,6 +215,7 @@ const MENTORS = [
     name: "Farhana Kabir",
     role: "Spoken English Coach",
     edu: "IELTS 8.5 • British Council",
+    university: "Jahangirnagar University (JU)",
     dept: "Language & Skills",
     badge: "🗣️",
     badgeFull: "Spoken Fluency",
@@ -223,6 +229,7 @@ const MENTORS = [
     name: "Mehedi Hasan",
     role: "Hardware & Electronics Lead",
     edu: "Electronics Lab Director",
+    university: "DUET",
     dept: "Robotics & Tech",
     badge: "⚡",
     badgeFull: "Hardware Lab",
@@ -236,6 +243,7 @@ const MENTORS = [
     name: "Shafiqul Islam",
     role: "Higher Mathematics Lead",
     edu: "M.Sc. Applied Math (DU)",
+    university: "University of Dhaka (DU)",
     dept: "Academic & Science",
     badge: "📐",
     badgeFull: "Math Session",
@@ -249,6 +257,7 @@ const MENTORS = [
     name: "Dr. Farzana Yasmin",
     role: "Green Science & Biology",
     edu: "Ph.D. Agricultural Science",
+    university: "Bangladesh Agricultural University (BAU)",
     dept: "Academic & Science",
     badge: "🌱",
     badgeFull: "Green Science",
@@ -262,6 +271,7 @@ const MENTORS = [
     name: "Sadman Al-Amin",
     role: "IoT & Automation Coach",
     edu: "B.Sc. CSE • Embedded Systems",
+    university: "AUST",
     dept: "Robotics & Tech",
     badge: "⚙️",
     badgeFull: "IoT Automation",
@@ -587,18 +597,6 @@ function Nav() {
                 {l}
               </motion.a>
             ))}
-            <motion.a
-              href={WHATSAPP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-call sheet-call"
-              onClick={() => setOpen(false)}
-              initial={{ y: 40, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.7 }}
-            >
-              💬 Chat & Call on WhatsApp
-            </motion.a>
           </motion.div>
         )}
       </AnimatePresence>
@@ -743,15 +741,6 @@ function Hero({ onPhotoClick }) {
         />
 
         <motion.div style={{ y: ty, opacity: fade, position: "relative", zIndex: 3, padding: "0 4vw" }}>
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
-            style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(246,247,242,0.12)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.18)", padding: "6px 16px", borderRadius: "99px", marginBottom: "18px", fontSize: "0.88rem", fontWeight: 600, color: "var(--paper)" }}
-          >
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 10px #10b981", display: "inline-block" }} />
-            <span>20 Authentic Class & Lab Moments • Bangladesh</span>
-          </motion.div>
           <h1>
             {words.map((w, i) => (
               <span key={w}>
@@ -973,18 +962,17 @@ function Mentors({ onEnrol }) {
   const cats = ["All Mentors", "Robotics & Tech", "Creative Arts", "Academic & Science", "Arts & Sports", "Language & Skills"];
   const [cat, setCat] = useState("All Mentors");
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [visibleCount, setVisibleCount] = useState(5);
+  const [visibleCount, setVisibleCount] = useState(4);
 
   const list = cat === "All Mentors" ? MENTORS : MENTORS.filter((m) => m.dept === cat);
 
   useEffect(() => {
     const handleResize = () => {
       const w = window.innerWidth;
-      if (w < 480) setVisibleCount(1);
-      else if (w < 680) setVisibleCount(2);
-      else if (w < 960) setVisibleCount(3);
-      else if (w < 1200) setVisibleCount(4);
-      else setVisibleCount(5);
+      if (w < 520) setVisibleCount(1);
+      else if (w < 820) setVisibleCount(2);
+      else if (w < 1120) setVisibleCount(3);
+      else setVisibleCount(4);
     };
     handleResize();
     window.addEventListener("resize", handleResize);
@@ -1089,45 +1077,31 @@ function Mentors({ onEnrol }) {
               {list.map((m) => (
                 <div
                   key={m.id}
-                  className="mentor-line-cell"
+                  className="mentor-roster-cell"
                   style={{
                     flex: `0 0 ${100 / visibleCount}%`,
                     maxWidth: `${100 / visibleCount}%`,
                   }}
                 >
-                  <div className="mentor-line-item">
-                    <div className="mentor-circle-wrap">
-                      <div className="mentor-circle-inner">
-                        <img
-                          src={m.img}
-                          alt={m.name}
-                          className="mentor-circle-img"
-                          loading="lazy"
-                        />
-                      </div>
-                      <span className="mentor-circle-badge" title={m.badgeFull}>
-                        {m.badge}
-                      </span>
+                  <div className="mentor-roster-item">
+                    <div className="mentor-avatar-wrap">
+                      <img
+                        src={m.img}
+                        alt={m.name}
+                        className="mentor-avatar-img"
+                        loading="lazy"
+                      />
                     </div>
 
-                    <h3 className="mentor-line-name" title={m.name}>
+                    <h3 className="mentor-name" title={m.name}>
                       {m.name}
                     </h3>
-                    <p className="mentor-line-role" title={m.role}>
-                      {m.role}
+                    <p className="mentor-course" title={m.course}>
+                      {m.course}
                     </p>
-                    <p className="mentor-line-edu" title={m.edu}>
-                      🎓 {m.edu}
+                    <p className="mentor-uni" title={m.university || m.edu}>
+                      🏛️ {m.university || m.edu}
                     </p>
-                    <span className="mentor-line-stats">{m.stats}</span>
-
-                    <button
-                      type="button"
-                      className="mentor-line-btn"
-                      onClick={() => onEnrol && onEnrol(m.course)}
-                    >
-                      Enrol with Mentor →
-                    </button>
                   </div>
                 </div>
               ))}
@@ -1706,7 +1680,20 @@ function Footer() {
           <span>Dhaka, Bangladesh</span>
         </div>
       </div>
-      <p className="wrap" style={{ marginTop: 40, opacity: 0.55 }}>© {new Date().getFullYear()} Onushilon Academy</p>
+      <div className="wrap footer-bottom">
+        <p>© {new Date().getFullYear()} Onushilon Academy. All rights reserved.</p>
+        <p className="footer-credit">
+          Developed by{" "}
+          <a
+            href="https://corpusian.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="footer-dev-link"
+          >
+            corpusian
+          </a>
+        </p>
+      </div>
     </footer>
   );
 }
