@@ -144,7 +144,7 @@ section{padding:clamp(72px,11vw,150px) 0;position:relative}
 
 
 /* testimonials */
-.tst{background:var(--mist)}
+.tst{background:var(--mist);overflow:clip}
 .tcard{display:grid;grid-template-columns:240px 1fr;gap:40px;align-items:center;margin-top:44px;min-height:260px}
 .tcard .ph{aspect-ratio:1;border-radius:50%}
 .tcard blockquote{font-family:var(--f-display);font-size:clamp(1.4rem,3vw,2.3rem);line-height:1.25;font-weight:500}

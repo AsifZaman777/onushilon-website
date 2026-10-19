@@ -1,10 +1,25 @@
 "use client";
 import { useRef, useState, useEffect } from "react";
 import {
-  motion, AnimatePresence, useScroll, useTransform, useSpring,
-  useMotionValue, useInView, animate, useReducedMotion,
+  motion,
+  AnimatePresence,
+  useScroll,
+  useTransform,
+  useSpring,
+  useMotionValue,
+  useInView,
+  animate,
+  useReducedMotion,
 } from "framer-motion";
-import { IMG, LOGO, PHONE, PHONE_HREF, WHATSAPP_URL, HERO_CARD_STREAMS, ALL_PHOTOS } from "../lib/assets";
+import {
+  IMG,
+  LOGO,
+  PHONE,
+  PHONE_HREF,
+  WHATSAPP_URL,
+  HERO_CARD_STREAMS,
+  ALL_PHOTOS,
+} from "../lib/assets";
 
 const NAV = [
   ["home", "Home"],
@@ -31,7 +46,12 @@ const COURSES = [
     mentor: "Engr. Nayeem Siddique (Robotics Specialist)",
     schedule: "Fri & Sat • 4:00 PM",
     seats: "6 seats left",
-    topics: ["Microcontroller Architecture & Arduino", "Sensor Integration & Motor Drivers", "Autonomous Line & Maze Following Bots", "Final Exhibition Hardware Capstone"],
+    topics: [
+      "Microcontroller Architecture & Arduino",
+      "Sensor Integration & Motor Drivers",
+      "Autonomous Line & Maze Following Bots",
+      "Final Exhibition Hardware Capstone",
+    ],
   },
   {
     id: "art",
@@ -44,7 +64,12 @@ const COURSES = [
     mentor: "Shabnam Mustari (Fine Arts Master)",
     schedule: "Sun & Wed • 4:30 PM",
     seats: "8 seats left",
-    topics: ["Graphite Shading & Perspective Rules", "Acrylic & Watercolor Color Theory", "Composition & Landscape Painting", "Annual Academy Exhibition Showcase"],
+    topics: [
+      "Graphite Shading & Perspective Rules",
+      "Acrylic & Watercolor Color Theory",
+      "Composition & Landscape Painting",
+      "Annual Academy Exhibition Showcase",
+    ],
   },
   {
     id: "hsc",
@@ -57,7 +82,12 @@ const COURSES = [
     mentor: "Engr. Tanvir Ahmed (BUET)",
     schedule: "Sun, Tue & Thu • 8:00 PM",
     seats: "14 seats left",
-    topics: ["Kinematics & Dynamics", "Electricity & Magnetism", "Organic Chemistry Mechanisms", "Weekly CQ & MCQ Mock Tests"],
+    topics: [
+      "Kinematics & Dynamics",
+      "Electricity & Magnetism",
+      "Organic Chemistry Mechanisms",
+      "Weekly CQ & MCQ Mock Tests",
+    ],
   },
   {
     id: "webdev",
@@ -70,7 +100,12 @@ const COURSES = [
     mentor: "Arif Hossain (Senior Frontend Dev)",
     schedule: "Fri & Sat • 9:00 PM",
     seats: "6 seats left",
-    topics: ["HTML5 & Modern Flex/Grid", "JavaScript ES6+ & DOM Logic", "React & Interactive UI Components", "Building 5 Real Portfolio Projects"],
+    topics: [
+      "HTML5 & Modern Flex/Grid",
+      "JavaScript ES6+ & DOM Logic",
+      "React & Interactive UI Components",
+      "Building 5 Real Portfolio Projects",
+    ],
   },
   {
     id: "karate",
@@ -83,7 +118,12 @@ const COURSES = [
     mentor: "Sensei Mahmudul Hasan (Black Belt 3rd Dan)",
     schedule: "Sat & Mon • 7:00 AM",
     seats: "10 seats left",
-    topics: ["Kihon (Stances, Punches & Blocks)", "Kata Forms & Mindful Breathing", "Kumite Self-Defense Techniques", "Official Belt Rank Grading Exams"],
+    topics: [
+      "Kihon (Stances, Punches & Blocks)",
+      "Kata Forms & Mindful Breathing",
+      "Kumite Self-Defense Techniques",
+      "Official Belt Rank Grading Exams",
+    ],
   },
   {
     id: "spoken",
@@ -96,7 +136,12 @@ const COURSES = [
     mentor: "Farhana Kabir (IELTS 8.5)",
     schedule: "Mon & Wed • 7:30 PM",
     seats: "8 seats left",
-    topics: ["Phonics & Accent Reduction", "Everyday Conversation Fluency", "Public Speaking Mastery", "1-on-1 Speaking Drill Breakouts"],
+    topics: [
+      "Phonics & Accent Reduction",
+      "Everyday Conversation Fluency",
+      "Public Speaking Mastery",
+      "1-on-1 Speaking Drill Breakouts",
+    ],
   },
   {
     id: "hardware",
@@ -109,7 +154,12 @@ const COURSES = [
     mentor: "Mehedi Hasan (Electronics Lead)",
     schedule: "Tue & Thu • 5:00 PM",
     seats: "7 seats left",
-    topics: ["Multimeter & Circuit Diagnostics", "PC Assembly & Component Troubleshooting", "Soldering & Power Supply Testing", "Real Device Maintenance Drills"],
+    topics: [
+      "Multimeter & Circuit Diagnostics",
+      "PC Assembly & Component Troubleshooting",
+      "Soldering & Power Supply Testing",
+      "Real Device Maintenance Drills",
+    ],
   },
   {
     id: "green",
@@ -122,7 +172,12 @@ const COURSES = [
     mentor: "Dr. Farzana Yasmin (Agricultural Scientist)",
     schedule: "Fri morning • 9:00 AM",
     seats: "12 seats left",
-    topics: ["Botany & Photosynthesis Experiments", "Soil Chemistry & Composting Labs", "Urban Hydroponics & Gardening", "Ecosystem Preservation Projects"],
+    topics: [
+      "Botany & Photosynthesis Experiments",
+      "Soil Chemistry & Composting Labs",
+      "Urban Hydroponics & Gardening",
+      "Ecosystem Preservation Projects",
+    ],
   },
   {
     id: "ssc",
@@ -135,7 +190,12 @@ const COURSES = [
     mentor: "Shafiqul Islam (DU Applied Math)",
     schedule: "Sat, Mon & Wed • 6:30 PM",
     seats: "12 seats left",
-    topics: ["Algebra, Sets & Functions", "Trigonometric Identities & Heights", "Geometry Proofs with Shortcuts", "10 Years Past Board Paper Drills"],
+    topics: [
+      "Algebra, Sets & Functions",
+      "Trigonometric Identities & Heights",
+      "Geometry Proofs with Shortcuts",
+      "10 Years Past Board Paper Drills",
+    ],
   },
 ];
 
@@ -385,16 +445,20 @@ const PRACTICE_TASKS = [
   {
     subject: "HSC Physics",
     topic: "Work, Power & Energy",
-    question: "A body of mass 2 kg is dropped from a height of 10m. What is its kinetic energy just before hitting the ground? (Take g = 9.8 m/s²)",
+    question:
+      "A body of mass 2 kg is dropped from a height of 10m. What is its kinetic energy just before hitting the ground? (Take g = 9.8 m/s²)",
     options: ["98 Joules", "196 Joules", "392 Joules", "49 Joules"],
     correct: 1,
-    explanation: "By conservation of mechanical energy, Potential Energy at top = Kinetic Energy at bottom. KE = m × g × h = 2 kg × 9.8 m/s² × 10m = 196 Joules.",
-    mentorNote: "Classic conservation of energy! Remember: you don't even need to calculate velocity first.",
+    explanation:
+      "By conservation of mechanical energy, Potential Energy at top = Kinetic Energy at bottom. KE = m × g × h = 2 kg × 9.8 m/s² × 10m = 196 Joules.",
+    mentorNote:
+      "Classic conservation of energy! Remember: you don't even need to calculate velocity first.",
   },
   {
     subject: "Spoken English",
     topic: "Natural Fluency",
-    question: "Which response sounds most natural when a colleague thanks you for helping them with an important project?",
+    question:
+      "Which response sounds most natural when a colleague thanks you for helping them with an important project?",
     options: [
       "No problem, don't mention it at all!",
       "I was strictly obligated by my duty to assist.",
@@ -402,13 +466,16 @@ const PRACTICE_TASKS = [
       "It is my extreme formal pleasure and honor.",
     ],
     correct: 2,
-    explanation: "'Glad I could help!' is warm, polite, and universally used in both conversational and professional workplace environments.",
-    mentorNote: "Tone is as vital as grammar! Natural friendly phrasing leaves the strongest positive impression.",
+    explanation:
+      "'Glad I could help!' is warm, polite, and universally used in both conversational and professional workplace environments.",
+    mentorNote:
+      "Tone is as vital as grammar! Natural friendly phrasing leaves the strongest positive impression.",
   },
   {
     subject: "Web Development",
     topic: "Modern CSS",
-    question: "What is the cleanest modern CSS rule to center a child item both horizontally and vertically inside its container?",
+    question:
+      "What is the cleanest modern CSS rule to center a child item both horizontally and vertically inside its container?",
     options: [
       "display: flex; justify-content: center; align-items: center;",
       "margin: auto; float: center; align: center;",
@@ -416,8 +483,10 @@ const PRACTICE_TASKS = [
       "position: absolute; left: 50%; right: 50%;",
     ],
     correct: 0,
-    explanation: "Flexbox with 'justify-content: center' (main axis) and 'align-items: center' (cross axis) centers children predictably across any viewport.",
-    mentorNote: "Spot on! Flexbox or CSS Grid ('display: grid; place-items: center;') are current industry best practices.",
+    explanation:
+      "Flexbox with 'justify-content: center' (main axis) and 'align-items: center' (cross axis) centers children predictably across any viewport.",
+    mentorNote:
+      "Spot on! Flexbox or CSS Grid ('display: grid; place-items: center;') are current industry best practices.",
   },
 ];
 
@@ -445,17 +514,43 @@ const FAQS = [
 ];
 
 const STORY = [
-  ["2014", "Five students, one rented room, and a rule: every lesson ends with practice."],
-  ["2018", "We opened a second branch and began recording every class for revision."],
+  [
+    "2014",
+    "Five students, one rented room, and a rule: every lesson ends with practice.",
+  ],
+  [
+    "2018",
+    "We opened a second branch and began recording every class for revision.",
+  ],
   ["2022", "Onushilon went online. Students from 40 districts joined live."],
   ["Today", "Over 12,000 learners practise with us every week."],
 ];
 
 const VOICES = [
-  ["The art mentors here don't just teach techniques; they helped me discover my own painting style. Seeing my artwork on exhibition was a dream come true!", "Tasnim Akter", "Creative Arts & Design graduate", "t1"],
-  ["Building and programming an autonomous robot with my own hands was unforgettable. The robotics lab mentors guided us through every sensor and circuit.", "Sadman Sakib", "Robotics & STEM batch 2024", "t2"],
-  ["Practice every single day finally made physics equations click for me. My mentor reviewed every step of my solution, not just the final number.", "Nusrat Jahan", "HSC Science achiever, Dhaka", "t3"],
-  ["I was terrified of speaking English in public. The interactive fun sessions and 1-on-1 speaking drills completely transformed my fluency and confidence.", "Rafiul Islam", "Spoken English graduate", "t4"],
+  [
+    "The art mentors here don't just teach techniques; they helped me discover my own painting style. Seeing my artwork on exhibition was a dream come true!",
+    "Tasnim Akter",
+    "Creative Arts & Design graduate",
+    "t1",
+  ],
+  [
+    "Building and programming an autonomous robot with my own hands was unforgettable. The robotics lab mentors guided us through every sensor and circuit.",
+    "Sadman Sakib",
+    "Robotics & STEM batch 2024",
+    "t2",
+  ],
+  [
+    "Practice every single day finally made physics equations click for me. My mentor reviewed every step of my solution, not just the final number.",
+    "Nusrat Jahan",
+    "HSC Science achiever, Dhaka",
+    "t3",
+  ],
+  [
+    "I was terrified of speaking English in public. The interactive fun sessions and 1-on-1 speaking drills completely transformed my fluency and confidence.",
+    "Rafiul Islam",
+    "Spoken English graduate",
+    "t4",
+  ],
 ];
 
 /* Image with a coloured placeholder until a file path is set in lib/assets.js */
@@ -473,15 +568,26 @@ function Count({ to, suffix = "" }) {
   const [n, setN] = useState(0);
   useEffect(() => {
     if (!inView) return;
-    const c = animate(v, to, { duration: 2, ease: "easeOut", onUpdate: (x) => setN(Math.round(x)) });
+    const c = animate(v, to, {
+      duration: 2,
+      ease: "easeOut",
+      onUpdate: (x) => setN(Math.round(x)),
+    });
     return c.stop;
   }, [inView, to, v]);
-  return <span ref={ref}>{n.toLocaleString()}{suffix}</span>;
+  return (
+    <span ref={ref}>
+      {n.toLocaleString()}
+      {suffix}
+    </span>
+  );
 }
 
 function Tilt({ children, className, onClick }) {
-  const rx = useMotionValue(0), ry = useMotionValue(0);
-  const sx = useSpring(rx, { stiffness: 200, damping: 18 }), sy = useSpring(ry, { stiffness: 200, damping: 18 });
+  const rx = useMotionValue(0),
+    ry = useMotionValue(0);
+  const sx = useSpring(rx, { stiffness: 200, damping: 18 }),
+    sy = useSpring(ry, { stiffness: 200, damping: 18 });
   const move = (e) => {
     const r = e.currentTarget.getBoundingClientRect();
     ry.set(((e.clientX - r.left) / r.width - 0.5) * 10);
@@ -492,7 +598,10 @@ function Tilt({ children, className, onClick }) {
       className={className}
       style={{ rotateX: sx, rotateY: sy, transformPerspective: 900 }}
       onMouseMove={move}
-      onMouseLeave={() => { rx.set(0); ry.set(0); }}
+      onMouseLeave={() => {
+        rx.set(0);
+        ry.set(0);
+      }}
       onClick={onClick}
       layout
       initial={{ opacity: 0, scale: 0.94 }}
@@ -522,9 +631,12 @@ function Nav() {
   useEffect(() => {
     const io = new IntersectionObserver(
       (es) => es.forEach((e) => e.isIntersecting && setActive(e.target.id)),
-      { rootMargin: "-45% 0px -50% 0px" }
+      { rootMargin: "-45% 0px -50% 0px" },
     );
-    NAV.forEach(([id]) => document.getElementById(id) && io.observe(document.getElementById(id)));
+    NAV.forEach(
+      ([id]) =>
+        document.getElementById(id) && io.observe(document.getElementById(id)),
+    );
     return () => io.disconnect();
   }, []);
 
@@ -543,15 +655,36 @@ function Nav() {
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           >
             <a href="#home" className="logo">
-              {LOGO ? <img src={LOGO} alt="Onushilon" /> : <><i>অ</i>Onushilon</>}
+              {LOGO ? (
+                <img src={LOGO} alt="Onushilon" />
+              ) : (
+                <>
+                  <i>অ</i>Onushilon
+                </>
+              )}
             </a>
             <div className="links">
               {NAV.slice(1, -1).map(([id, l]) => (
-                <a key={id} href={`#${id}`} className={active === id ? "on" : ""}>{l}</a>
+                <a
+                  key={id}
+                  href={`#${id}`}
+                  className={active === id ? "on" : ""}
+                >
+                  {l}
+                </a>
               ))}
-              <a href="#join" className="btn" style={{ padding: "10px 22px" }}>Enrol now</a>
+              <a href="#join" className="btn" style={{ padding: "10px 22px" }}>
+                Enrol now
+              </a>
             </div>
-            <button className="burger" onClick={() => setOpen(!open)} aria-label="Menu" aria-expanded={open}>{open ? "✕" : "☰"}</button>
+            <button
+              className="burger"
+              onClick={() => setOpen(!open)}
+              aria-label="Menu"
+              aria-expanded={open}
+            >
+              {open ? "✕" : "☰"}
+            </button>
           </motion.nav>
         ) : (
           <motion.button
@@ -584,7 +717,13 @@ function Nav() {
             exit={{ clipPath: "circle(0% at 95% 4%)" }}
             transition={{ duration: 0.6, ease: [0.76, 0, 0.24, 1] }}
           >
-            <button className="sheet-close" onClick={() => setOpen(false)} aria-label="Close menu">✕</button>
+            <button
+              className="sheet-close"
+              onClick={() => setOpen(false)}
+              aria-label="Close menu"
+            >
+              ✕
+            </button>
             {NAV.map(([id, l], i) => (
               <motion.a
                 key={id}
@@ -657,16 +796,24 @@ function RisingHeroBox({
             opacity: [0, 1, 1],
             scale: [0.94, 1, 1],
             transition: {
-              y: { times: [0, 0.16, 1], duration: 7.0, ease: ["easeOut", "linear"] },
-              opacity: { times: [0, 0.14, 1], duration: 7.0, ease: "easeInOut" },
+              y: {
+                times: [0, 0.16, 1],
+                duration: 7.0,
+                ease: ["easeOut", "linear"],
+              },
+              opacity: {
+                times: [0, 0.14, 1],
+                duration: 7.0,
+                ease: "easeInOut",
+              },
               scale: { times: [0, 0.16, 1], duration: 7.0, ease: "easeOut" },
-            }
+            },
           }}
           exit={{
             y: -220,
             opacity: 0,
             scale: 0.94,
-            transition: { duration: 0.9, ease: [0.22, 1, 0.36, 1] }
+            transition: { duration: 0.9, ease: [0.22, 1, 0.36, 1] },
           }}
           onClick={() => onPhotoClick && onPhotoClick(current)}
           title="Click to view full photo • Hover to pause"
@@ -692,7 +839,10 @@ function RisingHeroBox({
 function Hero({ onPhotoClick }) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
-  const { scrollYProgress: p } = useScroll({ target: ref, offset: ["start start", "end start"] });
+  const { scrollYProgress: p } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"],
+  });
   const k = reduce ? 0 : 1;
   const y1 = useTransform(p, [0, 1], [0, -260 * k]);
   const y2 = useTransform(p, [0, 1], [0, 180 * k]);
@@ -706,7 +856,7 @@ function Hero({ onPhotoClick }) {
     <section id="home" className="hero" ref={ref}>
       <div className="hero-in">
         <motion.div className="glow" style={{ y: y2 }} />
-        
+
         {/* The whole box comes from the bottom, rises up with fade, stays calmly, and hides at top */}
         <RisingHeroBox
           stream={HERO_CARD_STREAMS[0]}
@@ -742,7 +892,15 @@ function Hero({ onPhotoClick }) {
           onPhotoClick={onPhotoClick}
         />
 
-        <motion.div style={{ y: ty, opacity: fade, position: "relative", zIndex: 3, padding: "0 4vw" }}>
+        <motion.div
+          style={{
+            y: ty,
+            opacity: fade,
+            position: "relative",
+            zIndex: 3,
+            padding: "0 4vw",
+          }}
+        >
           <h1>
             {words.map((w, i) => (
               <span key={w}>
@@ -750,20 +908,45 @@ function Hero({ onPhotoClick }) {
                   style={{ display: "block" }}
                   initial={{ y: "110%" }}
                   animate={{ y: 0 }}
-                  transition={{ duration: 1, delay: 0.15 + i * 0.12, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{
+                    duration: 1,
+                    delay: 0.15 + i * 0.12,
+                    ease: [0.16, 1, 0.3, 1],
+                  }}
                 >
                   {i === 2 ? <em>{w}</em> : w}
                 </motion.span>
               </span>
             ))}
           </h1>
-          <motion.p className="sub" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}>
-            Onushilon Academy gives you expert mentors, live interactive classes and daily exercises, from SSC to job-ready tech skills.
+          <motion.p
+            className="sub"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.9 }}
+          >
+            Onushilon Academy gives you expert mentors, live interactive classes
+            and daily exercises, from SSC to job-ready tech skills.
           </motion.p>
-          <motion.div className="cta" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.1 }}>
-            <a className="btn" href="#courses">Browse courses</a>
-            <a className="btn ghost" href="#moments">Explore class moments</a>
-            <a className="btn-call" href={PHONE_HREF} style={{ padding: "14px 22px", fontSize: "0.95rem" }}>📞 Call now</a>
+          <motion.div
+            className="cta"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.1 }}
+          >
+            <a className="btn" href="#courses">
+              Browse courses
+            </a>
+            <a className="btn ghost" href="#moments">
+              Explore class moments
+            </a>
+            <a
+              className="btn-call"
+              href={PHONE_HREF}
+              style={{ padding: "14px 22px", fontSize: "0.95rem" }}
+            >
+              📞 Call now
+            </a>
           </motion.div>
         </motion.div>
       </div>
@@ -772,12 +955,29 @@ function Hero({ onPhotoClick }) {
 }
 
 function Marquee() {
-  const items = ["Live classes", "Daily practice", "Mock exams", "Mentor feedback", "Recorded lessons", "Study groups"];
+  const items = [
+    "Live classes",
+    "Daily practice",
+    "Mock exams",
+    "Mentor feedback",
+    "Recorded lessons",
+    "Study groups",
+  ];
   const row = [...items, ...items];
   return (
     <div className="marq" aria-hidden>
-      <motion.div animate={{ x: ["0%", "-50%"] }} transition={{ duration: 28, ease: "linear", repeat: Infinity }} style={{ display: "inline-flex" }}>
-        {[0, 1].map((n) => <div key={n}>{row.map((t, i) => <span key={i}>{t} ✺</span>)}</div>)}
+      <motion.div
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{ duration: 28, ease: "linear", repeat: Infinity }}
+        style={{ display: "inline-flex" }}
+      >
+        {[0, 1].map((n) => (
+          <div key={n}>
+            {row.map((t, i) => (
+              <span key={i}>{t} ✺</span>
+            ))}
+          </div>
+        ))}
       </motion.div>
     </div>
   );
@@ -785,25 +985,56 @@ function Marquee() {
 
 function Story() {
   const ref = useRef(null);
-  const { scrollYProgress: p } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const { scrollYProgress: p } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"],
+  });
   const a = useTransform(p, [0, 1], [60, -60]);
   const b = useTransform(p, [0, 1], [-80, 100]);
   return (
     <section id="story" ref={ref}>
       <div className="wrap story">
         <div className="imgs">
-          <motion.div className="a ph" style={{ y: a }}><Pic k="story" alt="Our first classroom" style={{ height: "100%" }} /></motion.div>
-          <motion.div className="b" style={{ y: b }}><Pic k="story2" cls="alt" style={{ height: "100%", borderRadius: "inherit" }} /></motion.div>
+          <motion.div className="a ph" style={{ y: a }}>
+            <Pic
+              k="story"
+              alt="Our first classroom"
+              style={{ height: "100%" }}
+            />
+          </motion.div>
+          <motion.div className="b" style={{ y: b }}>
+            <Pic
+              k="story2"
+              cls="alt"
+              style={{ height: "100%", borderRadius: "inherit" }}
+            />
+          </motion.div>
         </div>
         <div>
-          <motion.h2 className="h2" initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+          <motion.h2
+            className="h2"
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
             Onushilon means practice. We took it literally.
           </motion.h2>
-          <p className="lead">We started because lectures alone never made anyone truly confident. Every course here is built around doing the work, getting detailed mentor feedback, and mastering the concept.</p>
+          <p className="lead">
+            We started because lectures alone never made anyone truly confident.
+            Every course here is built around doing the work, getting detailed
+            mentor feedback, and mastering the concept.
+          </p>
           <div className="tl">
             {STORY.map(([y, t], i) => (
-              <motion.div key={y} initial={{ opacity: 0, x: -24 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: "-60px" }} transition={{ delay: i * 0.05 }}>
-                <b>{y}</b><p>{t}</p>
+              <motion.div
+                key={y}
+                initial={{ opacity: 0, x: -24 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <b>{y}</b>
+                <p>{t}</p>
               </motion.div>
             ))}
           </div>
@@ -814,7 +1045,14 @@ function Story() {
 }
 
 function Courses({ onOpenModal, onEnrol }) {
-  const cats = ["All", "Robotics & Tech", "Arts & Sports", "Academic", "Language", "Skills"];
+  const cats = [
+    "All",
+    "Robotics & Tech",
+    "Arts & Sports",
+    "Academic",
+    "Language",
+    "Skills",
+  ];
   const [cat, setCat] = useState("All");
   const [search, setSearch] = useState("");
 
@@ -834,13 +1072,28 @@ function Courses({ onOpenModal, onEnrol }) {
     <section id="courses" className="courses">
       <div className="wrap">
         <h2 className="h2">Pick a course and start this week</h2>
-        <p className="lead">New batches begin every month. Each course includes weekly practice sets and an expert mentor who reviews your progress.</p>
-        
+        <p className="lead">
+          New batches begin every month. Each course includes weekly practice
+          sets and an expert mentor who reviews your progress.
+        </p>
+
         <div className="courses-top">
           <div className="tabs" role="tablist">
             {cats.map((c) => (
-              <button key={c} role="tab" aria-selected={cat === c} className={`tab ${cat === c ? "on" : ""}`} onClick={() => setCat(c)}>
-                {cat === c && <motion.span layoutId="course-tab-pill" className="tab-pill" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
+              <button
+                key={c}
+                role="tab"
+                aria-selected={cat === c}
+                className={`tab ${cat === c ? "on" : ""}`}
+                onClick={() => setCat(c)}
+              >
+                {cat === c && (
+                  <motion.span
+                    layoutId="course-tab-pill"
+                    className="tab-pill"
+                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                  />
+                )}
                 <span className="tab-label">{c}</span>
               </button>
             ))}
@@ -863,20 +1116,46 @@ function Courses({ onOpenModal, onEnrol }) {
               list.map((c) => (
                 <Tilt key={c.t} className="card" onClick={() => onOpenModal(c)}>
                   <div style={{ position: "relative" }}>
-                    <Pic k={c.i} alt={c.t} cls={c.c === "Language" ? "alt" : c.c === "Skills" ? "alt2" : ""} />
+                    <Pic
+                      k={c.i}
+                      alt={c.t}
+                      cls={
+                        c.c === "Language"
+                          ? "alt"
+                          : c.c === "Skills"
+                            ? "alt2"
+                            : ""
+                      }
+                    />
                     <div className="card-badges">
                       <span className="card-badge">{c.seats}</span>
                     </div>
                   </div>
                   <div className="body">
-                    <div className="meta"><span>{c.c}</span><span>{c.d}</span></div>
+                    <div className="meta">
+                      <span>{c.c}</span>
+                      <span>{c.d}</span>
+                    </div>
                     <h3>{c.t}</h3>
                     <p className="schedule-info">🗓️ {c.schedule}</p>
                     <div className="row">
                       <span className="price">{c.p}</span>
-                      <div style={{ display: "flex", gap: "8px" }} onClick={(e) => e.stopPropagation()}>
-                        <button className="btn-outline" onClick={() => onOpenModal(c)}>Details</button>
-                        <button className="btn-primary" onClick={() => onEnrol(c.t)}>Enrol</button>
+                      <div
+                        style={{ display: "flex", gap: "8px" }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          className="btn-outline"
+                          onClick={() => onOpenModal(c)}
+                        >
+                          Details
+                        </button>
+                        <button
+                          className="btn-primary"
+                          onClick={() => onEnrol(c.t)}
+                        >
+                          Enrol
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -885,8 +1164,17 @@ function Courses({ onOpenModal, onEnrol }) {
             ) : (
               <div className="empty-courses">
                 <h3>No courses found matching "{search}"</h3>
-                <p style={{ opacity: 0.75, marginTop: 8 }}>Try clearing your search query or switching categories.</p>
-                <button className="btn" onClick={() => { setSearch(""); setCat("All"); }} style={{ marginTop: 16 }}>
+                <p style={{ opacity: 0.75, marginTop: 8 }}>
+                  Try clearing your search query or switching categories.
+                </p>
+                <button
+                  className="btn"
+                  onClick={() => {
+                    setSearch("");
+                    setCat("All");
+                  }}
+                  style={{ marginTop: 16 }}
+                >
                   Reset Filters
                 </button>
               </div>
@@ -917,15 +1205,25 @@ function CourseModal({ course, onClose, onEnrol }) {
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
           onClick={(e) => e.stopPropagation()}
         >
-          <button className="modal-close" onClick={onClose} aria-label="Close modal">✕</button>
+          <button
+            className="modal-close"
+            onClick={onClose}
+            aria-label="Close modal"
+          >
+            ✕
+          </button>
           <div>
-            <span className="modal-tag">{course.c} • {course.d}</span>
+            <span className="modal-tag">
+              {course.c} • {course.d}
+            </span>
             <div className="modal-header">
               <h3>{course.t}</h3>
             </div>
           </div>
           <div className="modal-mentor">
-            <span>🧑‍🏫 <b>Lead Mentor:</b> {course.mentor}</span>
+            <span>
+              🧑‍🏫 <b>Lead Mentor:</b> {course.mentor}
+            </span>
           </div>
           <div className="modal-info-grid">
             <div className="modal-info-item">
@@ -934,14 +1232,18 @@ function CourseModal({ course, onClose, onEnrol }) {
             </div>
             <div className="modal-info-item">
               <span>Format & Batch</span>
-              <b>{course.l} • {course.seats}</b>
+              <b>
+                {course.l} • {course.seats}
+              </b>
             </div>
           </div>
           <div className="modal-topics">
             <h4>Key Syllabus & Practice Topics:</h4>
             <ul>
               {course.topics.map((tp, idx) => (
-                <li key={idx}><i>✓</i> {tp}</li>
+                <li key={idx}>
+                  <i>✓</i> {tp}
+                </li>
               ))}
             </ul>
           </div>
@@ -950,7 +1252,10 @@ function CourseModal({ course, onClose, onEnrol }) {
               <span className="modal-fee-label">Complete Course Fee</span>
               <span className="modal-price">{course.p}</span>
             </div>
-            <button className="btn btn-modal-enrol" onClick={() => onEnrol(course.t)}>
+            <button
+              className="btn btn-modal-enrol"
+              onClick={() => onEnrol(course.t)}
+            >
               Proceed to Enrol →
             </button>
           </div>
@@ -961,12 +1266,20 @@ function CourseModal({ course, onClose, onEnrol }) {
 }
 
 function Mentors({ onEnrol }) {
-  const cats = ["All Mentors", "Robotics & Tech", "Creative Arts", "Academic & Science", "Arts & Sports", "Language & Skills"];
+  const cats = [
+    "All Mentors",
+    "Robotics & Tech",
+    "Creative Arts",
+    "Academic & Science",
+    "Arts & Sports",
+    "Language & Skills",
+  ];
   const [cat, setCat] = useState("All Mentors");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [visibleCount, setVisibleCount] = useState(4);
 
-  const list = cat === "All Mentors" ? MENTORS : MENTORS.filter((m) => m.dept === cat);
+  const list =
+    cat === "All Mentors" ? MENTORS : MENTORS.filter((m) => m.dept === cat);
 
   useEffect(() => {
     const handleResize = () => {
@@ -1007,7 +1320,9 @@ function Mentors({ onEnrol }) {
             <span className="mentors-kicker">Faculty & Mentorship</span>
             <h2 className="h2">Learn from practicing mentors</h2>
             <p className="lead" style={{ marginTop: "8px" }}>
-              Our faculty consists of practicing engineers, artists, university educators, and martial arts masters who review your work personally every single week.
+              Our faculty consists of practicing engineers, artists, university
+              educators, and martial arts masters who review your work
+              personally every single week.
             </p>
           </div>
 
@@ -1015,7 +1330,9 @@ function Mentors({ onEnrol }) {
             <div className="mentor-counter-pill">
               <span className="mentor-counter-dot" />
               <span>
-                {total > 0 ? `${currentIndex + 1}–${displayedEnd} of ${total} Mentors` : "0 Mentors"}
+                {total > 0
+                  ? `${currentIndex + 1}–${displayedEnd} of ${total} Mentors`
+                  : "0 Mentors"}
               </span>
             </div>
             <div className="mentor-nav-arrows">
@@ -1026,7 +1343,10 @@ function Mentors({ onEnrol }) {
                 aria-label="Previous mentors"
                 title="Previous mentors"
                 disabled={total <= visibleCount}
-                style={{ opacity: total <= visibleCount ? 0.4 : 1, cursor: total <= visibleCount ? "default" : "pointer" }}
+                style={{
+                  opacity: total <= visibleCount ? 0.4 : 1,
+                  cursor: total <= visibleCount ? "default" : "pointer",
+                }}
               >
                 ‹
               </button>
@@ -1037,7 +1357,10 @@ function Mentors({ onEnrol }) {
                 aria-label="Next mentors"
                 title="Next mentors"
                 disabled={total <= visibleCount}
-                style={{ opacity: total <= visibleCount ? 0.4 : 1, cursor: total <= visibleCount ? "default" : "pointer" }}
+                style={{
+                  opacity: total <= visibleCount ? 0.4 : 1,
+                  cursor: total <= visibleCount ? "default" : "pointer",
+                }}
               >
                 ›
               </button>
@@ -1115,19 +1438,24 @@ function Mentors({ onEnrol }) {
 
           {Math.ceil(total / visibleCount) > 1 && (
             <div className="mentor-dots-row">
-              {Array.from({ length: Math.ceil(total / visibleCount) }).map((_, p) => {
-                const isCurrentPage = Math.floor(currentIndex / visibleCount) === p;
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    className={`mentor-dot-pill ${isCurrentPage ? "active" : ""}`}
-                    onClick={() => setCurrentIndex(Math.min(p * visibleCount, maxIndex))}
-                    aria-label={`Go to mentors page ${p + 1}`}
-                    title={`Page ${p + 1}`}
-                  />
-                );
-              })}
+              {Array.from({ length: Math.ceil(total / visibleCount) }).map(
+                (_, p) => {
+                  const isCurrentPage =
+                    Math.floor(currentIndex / visibleCount) === p;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      className={`mentor-dot-pill ${isCurrentPage ? "active" : ""}`}
+                      onClick={() =>
+                        setCurrentIndex(Math.min(p * visibleCount, maxIndex))
+                      }
+                      aria-label={`Go to mentors page ${p + 1}`}
+                      title={`Page ${p + 1}`}
+                    />
+                  );
+                },
+              )}
             </div>
           )}
         </div>
@@ -1163,11 +1491,16 @@ function PracticeArena() {
   return (
     <section id="practice" className="practice-sec">
       <div className="wrap">
-        <div style={{ textAlign: "center", maxWidth: "680px", margin: "0 auto" }}>
+        <div
+          style={{ textAlign: "center", maxWidth: "680px", margin: "0 auto" }}
+        >
           <span className="quiz-badge">Interactive Demo</span>
-          <h2 className="h2" style={{ margin: "12px auto 0" }}>Experience Onushilon: Try a Practice Task</h2>
+          <h2 className="h2" style={{ margin: "12px auto 0" }}>
+            Experience Onushilon: Try a Practice Task
+          </h2>
           <p className="lead" style={{ margin: "14px auto 0" }}>
-            The best way to understand our methodology is to experience it. Solve a question below and see how instant mentor feedback works.
+            The best way to understand our methodology is to experience it.
+            Solve a question below and see how instant mentor feedback works.
           </p>
         </div>
 
@@ -1185,7 +1518,13 @@ function PracticeArena() {
           </div>
 
           <div className="quiz-header">
-            <span style={{ fontSize: "0.9rem", color: "var(--ink2)", fontWeight: 600 }}>
+            <span
+              style={{
+                fontSize: "0.9rem",
+                color: "var(--ink2)",
+                fontWeight: 600,
+              }}
+            >
               Topic: <b>{task.topic}</b>
             </span>
             <span className="quiz-streak">
@@ -1225,19 +1564,34 @@ function PracticeArena() {
                 exit={{ opacity: 0, y: 15 }}
               >
                 <div className="mentor-head">
-                  <span>🧑‍🏫 <b>{selectedOpt === task.correct ? "Excellent work! Mentor feedback:" : "Mentor guidance:"}</b></span>
+                  <span>
+                    🧑‍🏫{" "}
+                    <b>
+                      {selectedOpt === task.correct
+                        ? "Excellent work! Mentor feedback:"
+                        : "Mentor guidance:"}
+                    </b>
+                  </span>
                 </div>
                 <p>{task.explanation}</p>
-                <p style={{ fontStyle: "italic", opacity: 0.85 }}>“{task.mentorNote}”</p>
+                <p style={{ fontStyle: "italic", opacity: 0.85 }}>
+                  “{task.mentorNote}”
+                </p>
               </motion.div>
             )}
           </AnimatePresence>
 
           <div className="practice-actions">
             <span style={{ fontSize: "0.9rem", opacity: 0.75 }}>
-              {selectedOpt === null ? "👉 Select an answer above to reveal mentor guidance" : "Ready for regular daily practice?"}
+              {selectedOpt === null
+                ? "👉 Select an answer above to reveal mentor guidance"
+                : "Ready for regular daily practice?"}
             </span>
-            <a href="#courses" className="btn" style={{ padding: "10px 22px", fontSize: "0.95rem" }}>
+            <a
+              href="#courses"
+              className="btn"
+              style={{ padding: "10px 22px", fontSize: "0.95rem" }}
+            >
               Explore Full Courses →
             </a>
           </div>
@@ -1248,10 +1602,18 @@ function PracticeArena() {
 }
 
 function Moments({ onOpenLightbox }) {
-  const cats = ["All Moments", "Robotics & STEM", "Creative Arts", "Tech & Coding", "Active & Sports", "Academic"];
+  const cats = [
+    "All Moments",
+    "Robotics & STEM",
+    "Creative Arts",
+    "Tech & Coding",
+    "Active & Sports",
+    "Academic",
+  ];
   const [cat, setCat] = useState("All Moments");
 
-  const list = cat === "All Moments" ? MOMENTS : MOMENTS.filter((m) => m.c === cat);
+  const list =
+    cat === "All Moments" ? MOMENTS : MOMENTS.filter((m) => m.c === cat);
 
   return (
     <section id="moments" className="moments-sec">
@@ -1259,7 +1621,8 @@ function Moments({ onOpenLightbox }) {
         <div style={{ maxWidth: "700px" }}>
           <h2 className="h2">Class moments & life at Onushilon</h2>
           <p className="lead">
-            Take an authentic look inside our robotics labs, art workshops, coding studios, karate dojo, and science classrooms.
+            Take an authentic look inside our robotics labs, art workshops,
+            coding studios, karate dojo, and science classrooms.
           </p>
         </div>
 
@@ -1305,7 +1668,15 @@ function Moments({ onOpenLightbox }) {
                   <span className="moment-zoom-hint">🔍</span>
                 </div>
                 <div className="moment-body">
-                  <span style={{ fontSize: "0.82rem", color: "var(--gold)", fontWeight: 700 }}>{m.c}</span>
+                  <span
+                    style={{
+                      fontSize: "0.82rem",
+                      color: "var(--gold)",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {m.c}
+                  </span>
                   <h3>{m.t}</h3>
                   <p>{m.desc}</p>
                 </div>
@@ -1332,7 +1703,10 @@ function LightboxModal({ activeIndex, items, onClose, onNavigate }) {
     onNavigate((activeIndex + 1) % items.length);
   };
 
-  const imgSrc = current.src || (current.img && IMG[current.img]) || (current.k && IMG[current.k]);
+  const imgSrc =
+    current.src ||
+    (current.img && IMG[current.img]) ||
+    (current.k && IMG[current.k]);
   const title = current.t || current.title || "Academy Moment";
   const cat = current.c || current.tag || current.badge || "Onushilon Academy";
   const desc = current.desc || current.title || "";
@@ -1346,11 +1720,29 @@ function LightboxModal({ activeIndex, items, onClose, onNavigate }) {
         exit={{ opacity: 0 }}
         onClick={onClose}
       >
-        <button className="lightbox-close" onClick={onClose} aria-label="Close lightbox">✕</button>
+        <button
+          className="lightbox-close"
+          onClick={onClose}
+          aria-label="Close lightbox"
+        >
+          ✕
+        </button>
         {items.length > 1 && (
           <>
-            <button className="lightbox-nav-btn lightbox-prev" onClick={prev} aria-label="Previous moment">‹</button>
-            <button className="lightbox-nav-btn lightbox-next" onClick={next} aria-label="Next moment">›</button>
+            <button
+              className="lightbox-nav-btn lightbox-prev"
+              onClick={prev}
+              aria-label="Previous moment"
+            >
+              ‹
+            </button>
+            <button
+              className="lightbox-nav-btn lightbox-next"
+              onClick={next}
+              aria-label="Next moment"
+            >
+              ›
+            </button>
           </>
         )}
         <motion.div
@@ -1363,18 +1755,42 @@ function LightboxModal({ activeIndex, items, onClose, onNavigate }) {
         >
           <div className="lightbox-img-wrap">
             {imgSrc ? (
-              <img src={imgSrc} alt={title} decoding="async" style={{ width: "100%", maxHeight: "550px", objectFit: "contain", display: "block" }} />
+              <img
+                src={imgSrc}
+                alt={title}
+                decoding="async"
+                style={{
+                  width: "100%",
+                  maxHeight: "550px",
+                  objectFit: "contain",
+                  display: "block",
+                }}
+              />
             ) : (
               <Pic k={current.img} alt={title} style={{ height: "480px" }} />
             )}
           </div>
           <div className="lightbox-info">
             <div>
-              <span style={{ fontSize: "0.85rem", color: "var(--gold)", fontWeight: 700 }}>{cat}</span>
+              <span
+                style={{
+                  fontSize: "0.85rem",
+                  color: "var(--gold)",
+                  fontWeight: 700,
+                }}
+              >
+                {cat}
+              </span>
               <h3 style={{ fontSize: "1.45rem", marginTop: 4 }}>{title}</h3>
-              {desc && <p style={{ opacity: 0.85, fontSize: "0.95rem", marginTop: 4 }}>{desc}</p>}
+              {desc && (
+                <p style={{ opacity: 0.85, fontSize: "0.95rem", marginTop: 4 }}>
+                  {desc}
+                </p>
+              )}
             </div>
-            <span style={{ opacity: 0.6, fontSize: "0.9rem" }}>{activeIndex + 1} of {items.length}</span>
+            <span style={{ opacity: 0.6, fontSize: "0.9rem" }}>
+              {activeIndex + 1} of {items.length}
+            </span>
           </div>
         </motion.div>
       </motion.div>
@@ -1384,24 +1800,51 @@ function LightboxModal({ activeIndex, items, onClose, onNavigate }) {
 
 function Why() {
   const items = [
-    ["Mentors who read your work", "Every submission gets personalized written and audio feedback within 24 hours."],
-    ["Learn at your pace", "Every live class is recorded in HD and posted with notes, formula sheets, and practice sets."],
-    ["Exams that feel real", "Monthly timed mock tests under board/exam conditions, with comprehensive score breakdowns."],
+    [
+      "Mentors who read your work",
+      "Every submission gets personalized written and audio feedback within 24 hours.",
+    ],
+    [
+      "Learn at your pace",
+      "Every live class is recorded in HD and posted with notes, formula sheets, and practice sets.",
+    ],
+    [
+      "Exams that feel real",
+      "Monthly timed mock tests under board/exam conditions, with comprehensive score breakdowns.",
+    ],
   ];
   return (
     <section id="why">
       <div className="wrap">
         <div className="stats">
-          {[[12000, "+", "Active learners"], [85, "", "Expert mentors"], [40, "", "Districts reached"], [96, "%", "Finish their course"]].map(([n, s, l]) => (
-            <div key={l}><b><Count to={n} suffix={s} /></b><p>{l}</p></div>
+          {[
+            [12000, "+", "Active learners"],
+            [85, "", "Expert mentors"],
+            [40, "", "Districts reached"],
+            [96, "%", "Finish their course"],
+          ].map(([n, s, l]) => (
+            <div key={l}>
+              <b>
+                <Count to={n} suffix={s} />
+              </b>
+              <p>{l}</p>
+            </div>
           ))}
         </div>
         <div style={{ marginTop: 110 }}>
           <h2 className="h2">What you get when you join</h2>
           <div className="why">
             {items.map(([h, t], i) => (
-              <motion.div key={h} whileHover={{ y: -8 }} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
-                <h3>{h}</h3><p>{t}</p>
+              <motion.div
+                key={h}
+                whileHover={{ y: -8 }}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <h3>{h}</h3>
+                <p>{t}</p>
               </motion.div>
             ))}
           </div>
@@ -1427,14 +1870,27 @@ function Voices() {
   const [q, n, r, img] = VOICES[i];
   return (
     <section id="voices" className="tst">
-      <div className="wrap" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+      <div
+        className="wrap"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
         <h2 className="h2">Students say it better</h2>
         <AnimatePresence mode="wait">
-          <motion.div key={i} className="tcard" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} transition={{ duration: 0.4 }}>
+          <motion.div
+            key={i}
+            className="tcard"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+          >
             <Pic k={img} alt={n} cls="alt" />
             <div>
               <blockquote>“{q}”</blockquote>
-              <p style={{ marginTop: 16 }}><b>{n}</b>, {r}</p>
+              <p style={{ marginTop: 16 }}>
+                <b>{n}</b>, {r}
+              </p>
             </div>
           </motion.div>
         </AnimatePresence>
@@ -1451,8 +1907,20 @@ function Voices() {
             ))}
           </div>
           <div className="arrow-btns">
-            <button className="arrow-btn" onClick={prev} aria-label="Previous review">‹</button>
-            <button className="arrow-btn" onClick={next} aria-label="Next review">›</button>
+            <button
+              className="arrow-btn"
+              onClick={prev}
+              aria-label="Previous review"
+            >
+              ‹
+            </button>
+            <button
+              className="arrow-btn"
+              onClick={next}
+              aria-label="Next review"
+            >
+              ›
+            </button>
           </div>
         </div>
       </div>
@@ -1470,10 +1938,15 @@ function Faq() {
   return (
     <section id="faq" className="faq-sec">
       <div className="wrap">
-        <div style={{ textAlign: "center", maxWidth: "650px", margin: "0 auto" }}>
-          <h2 className="h2" style={{ margin: "0 auto" }}>Frequently asked questions</h2>
+        <div
+          style={{ textAlign: "center", maxWidth: "650px", margin: "0 auto" }}
+        >
+          <h2 className="h2" style={{ margin: "0 auto" }}>
+            Frequently asked questions
+          </h2>
           <p className="lead" style={{ margin: "14px auto 0" }}>
-            Got questions before enrolling? Here is everything you need to know about our batches, mentors, and policies.
+            Got questions before enrolling? Here is everything you need to know
+            about our batches, mentors, and policies.
           </p>
         </div>
 
@@ -1514,7 +1987,10 @@ function Faq() {
 
 function Join({ enrolledCourse }) {
   const ref = useRef(null);
-  const { scrollYProgress: p } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const { scrollYProgress: p } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"],
+  });
   const y = useTransform(p, [0, 1], ["-12%", "12%"]);
   const [sent, setSent] = useState(false);
   const [formData, setFormData] = useState({
@@ -1537,11 +2013,18 @@ function Join({ enrolledCourse }) {
 
   return (
     <section id="join" className="cta-s" ref={ref} style={{ padding: 0 }}>
-      <motion.div className="cta-bg" style={{ y }}><Pic k="cta" /></motion.div>
+      <motion.div className="cta-bg" style={{ y }}>
+        <Pic k="cta" />
+      </motion.div>
       <div className="wrap" style={{ padding: "100px 0" }}>
-        <h2 className="h2" style={{ maxWidth: "16ch" }}>Your next batch starts this week</h2>
-        <p className="lead">Reserve your seat now. A dedicated academic counsellor will connect with you to complete your batch onboarding.</p>
-        
+        <h2 className="h2" style={{ maxWidth: "16ch" }}>
+          Your next batch starts this week
+        </h2>
+        <p className="lead">
+          Reserve your seat now. A dedicated academic counsellor will connect
+          with you to complete your batch onboarding.
+        </p>
+
         {sent ? (
           <motion.div
             className="celebration-card"
@@ -1551,15 +2034,24 @@ function Join({ enrolledCourse }) {
           >
             <h3>🎉 Enrolment Request Received!</h3>
             <p style={{ fontSize: "1.1rem" }}>
-              Thank you <b>{formData.name}</b>! We have reserved a provisional seat for <b>{formData.course}</b>.
+              Thank you <b>{formData.name}</b>! We have reserved a provisional
+              seat for <b>{formData.course}</b>.
             </p>
             <p style={{ opacity: 0.85, fontSize: "0.95rem" }}>
-              Our academic counsellor will reach out via WhatsApp/Phone at <b>{formData.phone}</b> and send batch details to <b>{formData.email}</b> within 24 hours.
+              Our academic counsellor will reach out via WhatsApp/Phone at{" "}
+              <b>{formData.phone}</b> and send batch details to{" "}
+              <b>{formData.email}</b> within 24 hours.
             </p>
             <button
               className="btn"
-              onClick={() => { setSent(false); }}
-              style={{ width: "fit-content", marginTop: "12px", padding: "10px 22px" }}
+              onClick={() => {
+                setSent(false);
+              }}
+              style={{
+                width: "fit-content",
+                marginTop: "12px",
+                padding: "10px 22px",
+              }}
             >
               Enrol in another course
             </button>
@@ -1572,7 +2064,9 @@ function Join({ enrolledCourse }) {
                 required
                 placeholder="Full name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 aria-label="Full name"
               />
             </div>
@@ -1582,7 +2076,9 @@ function Join({ enrolledCourse }) {
                 required
                 placeholder="Mobile / WhatsApp (+880)"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
                 aria-label="Phone number"
               />
             </div>
@@ -1592,7 +2088,9 @@ function Join({ enrolledCourse }) {
                 required
                 placeholder="Your email address"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 aria-label="Email"
               />
             </div>
@@ -1600,7 +2098,9 @@ function Join({ enrolledCourse }) {
               <select
                 className="join-select"
                 value={formData.course}
-                onChange={(e) => setFormData({ ...formData, course: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, course: e.target.value })
+                }
                 aria-label="Select course"
               >
                 {COURSES.map((c) => (
@@ -1611,7 +2111,11 @@ function Join({ enrolledCourse }) {
               </select>
             </div>
             <div className="full" style={{ marginTop: "6px" }}>
-              <button className="btn" type="submit" style={{ padding: "16px 36px", fontSize: "1.05rem" }}>
+              <button
+                className="btn"
+                type="submit"
+                style={{ padding: "16px 36px", fontSize: "1.05rem" }}
+              >
                 Confirm Seat Reservation →
               </button>
             </div>
@@ -1648,18 +2152,6 @@ function FloatingCallButton() {
           </svg>
         </span>
         <span className="call-text">Call now</span>
-        <AnimatePresence>
-          {hovered && (
-            <motion.span
-              className="call-tooltip"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-            >
-              Open WhatsApp Inbox
-            </motion.span>
-          )}
-        </AnimatePresence>
       </a>
     </motion.div>
   );
@@ -1669,15 +2161,31 @@ function Footer() {
   return (
     <footer>
       <div className="wrap fg">
-        <div><b style={{ fontSize: "1.5rem" }}>Onushilon Academy</b><span style={{ opacity: 0.7 }}>Learn by practice.</span></div>
-        <div><b>Explore</b>{NAV.slice(1, -1).map(([id, l]) => <a key={id} href={`#${id}`}>{l}</a>)}</div>
+        <div>
+          <b style={{ fontSize: "1.5rem" }}>Onushilon Academy</b>
+          <span style={{ opacity: 0.7 }}>Learn by practice.</span>
+        </div>
+        <div>
+          <b>Explore</b>
+          {NAV.slice(1, -1).map(([id, l]) => (
+            <a key={id} href={`#${id}`}>
+              {l}
+            </a>
+          ))}
+        </div>
         <div>
           <b>Contact</b>
           <a
             href={WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: "var(--gold)", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "6px" }}
+            style={{
+              color: "var(--gold)",
+              fontWeight: 700,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
           >
             💬 WhatsApp: {PHONE} (9 AM – 10 PM)
           </a>
@@ -1686,7 +2194,9 @@ function Footer() {
         </div>
       </div>
       <div className="wrap footer-bottom">
-        <p>© {new Date().getFullYear()} Onushilon Academy. All rights reserved.</p>
+        <p>
+          © {new Date().getFullYear()} Onushilon Academy. All rights reserved.
+        </p>
         <p className="footer-credit">
           Developed by{" "}
           <a
@@ -1710,24 +2220,26 @@ export default function Page() {
 
   useEffect(() => {
     let lenisInstance;
-    import("lenis").then((LenisModule) => {
-      const Lenis = LenisModule.default || LenisModule;
-      lenisInstance = new Lenis({
-        duration: 1.25,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        orientation: "vertical",
-        gestureOrientation: "vertical",
-        smoothWheel: true,
-        wheelMultiplier: 1.05,
-        touchMultiplier: 1.5,
-      });
+    import("lenis")
+      .then((LenisModule) => {
+        const Lenis = LenisModule.default || LenisModule;
+        lenisInstance = new Lenis({
+          duration: 1.25,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          orientation: "vertical",
+          gestureOrientation: "vertical",
+          smoothWheel: true,
+          wheelMultiplier: 1.05,
+          touchMultiplier: 1.5,
+        });
 
-      function raf(time) {
-        lenisInstance.raf(time);
+        function raf(time) {
+          lenisInstance.raf(time);
+          requestAnimationFrame(raf);
+        }
         requestAnimationFrame(raf);
-      }
-      requestAnimationFrame(raf);
-    }).catch(() => {});
+      })
+      .catch(() => {});
 
     return () => {
       if (lenisInstance) lenisInstance.destroy();
@@ -1774,7 +2286,9 @@ export default function Page() {
         activeIndex={lightbox.index}
         items={lightbox.items}
         onClose={() => setLightbox({ index: null, items: [] })}
-        onNavigate={(newIdx) => setLightbox((prev) => ({ ...prev, index: newIdx }))}
+        onNavigate={(newIdx) =>
+          setLightbox((prev) => ({ ...prev, index: newIdx }))
+        }
       />
       <FloatingCallButton />
     </main>
