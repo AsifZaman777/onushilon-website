@@ -130,7 +130,7 @@ function Nav() {
     <>
       <motion.div className="bar" style={{ scaleX: bar }} />
       <AnimatePresence>
-        {scrolled ? (
+        {scrolled && (
           <motion.nav
             key="full-nav"
             className="nav"
@@ -174,34 +174,35 @@ function Nav() {
               {open ? "✕" : "☰"}
             </button>
           </motion.nav>
-        ) : (
-          <div className="hero-top-controls">
-            <div className="hero-lang-wrap">
-              <LanguageSwitcher />
-            </div>
-            <motion.button
-              key="hero-menu-btn"
-              className={`hero-menu-btn ${open ? "open" : ""}`}
-              onClick={() => setOpen(!open)}
-              aria-label={open ? "Close menu" : "Open menu"}
-              aria-expanded={open}
-              initial={{ opacity: 0, scale: 0.8, y: -10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: -10 }}
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.94 }}
-              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              style={{ position: "static" }}
-            >
-              <span className="burger-icon">
-                <span className="line l1" />
-                <span className="line l2" />
-                <span className="line l3" />
-              </span>
-            </motion.button>
-          </div>
         )}
       </AnimatePresence>
+      {!scrolled && (
+        <div className="hero-top-controls">
+          <div className="hero-lang-wrap">
+            <LanguageSwitcher />
+          </div>
+          <motion.button
+            key="hero-menu-btn"
+            className={`hero-menu-btn ${open ? "open" : ""}`}
+            onClick={() => setOpen(!open)}
+            aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
+            initial={{ opacity: 0, scale: 0.8, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: -10 }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.94 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            style={{ position: "static" }}
+          >
+            <span className="burger-icon">
+              <span className="line l1" />
+              <span className="line l2" />
+              <span className="line l3" />
+            </span>
+          </motion.button>
+        </div>
+      )}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -230,21 +231,6 @@ function Nav() {
                 {l}
               </motion.a>
             ))}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "12px" }}
-            >
-              <LanguageSwitcher isSheet={true} />
-              <a
-                href={PHONE_HREF}
-                className="btn btn-call sheet-call"
-                onClick={() => setOpen(false)}
-              >
-                {dict.hero.callNow}
-              </a>
-            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1674,9 +1660,6 @@ function Footer() {
         <div>
           <b style={{ fontSize: "1.5rem" }}>{dict.footer.brand}</b>
           <span style={{ opacity: 0.7 }}>{dict.footer.tagline}</span>
-          <div style={{ marginTop: "12px" }}>
-            <LanguageSwitcher />
-          </div>
         </div>
         <div>
           <b>{dict.footer.explore}</b>
