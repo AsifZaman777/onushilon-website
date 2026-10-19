@@ -17,541 +17,17 @@ import {
   PHONE,
   PHONE_HREF,
   WHATSAPP_URL,
-  HERO_CARD_STREAMS,
   ALL_PHOTOS,
 } from "../lib/assets";
-
-const NAV = [
-  ["home", "Home"],
-  ["story", "Our story"],
-  ["courses", "Courses"],
-  ["mentors", "Mentors"],
-  ["practice", "Practice"],
-  ["moments", "Class moments"],
-  ["why", "Why us"],
-  ["voices", "Students"],
-  ["faq", "FAQ"],
-  ["join", "Enrol"],
-];
-
-const COURSES = [
-  {
-    id: "robotic",
-    t: "Robotics & STEM Automation",
-    c: "Robotics & Tech",
-    d: "4 months",
-    l: "Hands-on Lab",
-    p: "৳5,500",
-    i: "c4",
-    mentor: "Engr. Nayeem Siddique (Robotics Specialist)",
-    schedule: "Fri & Sat • 4:00 PM",
-    seats: "6 seats left",
-    topics: [
-      "Microcontroller Architecture & Arduino",
-      "Sensor Integration & Motor Drivers",
-      "Autonomous Line & Maze Following Bots",
-      "Final Exhibition Hardware Capstone",
-    ],
-  },
-  {
-    id: "art",
-    t: "Creative Arts & Painting Studio",
-    c: "Arts & Sports",
-    d: "3 months",
-    l: "Studio sessions",
-    p: "৳3,600",
-    i: "c5",
-    mentor: "Shabnam Mustari (Fine Arts Master)",
-    schedule: "Sun & Wed • 4:30 PM",
-    seats: "8 seats left",
-    topics: [
-      "Graphite Shading & Perspective Rules",
-      "Acrylic & Watercolor Color Theory",
-      "Composition & Landscape Painting",
-      "Annual Academy Exhibition Showcase",
-    ],
-  },
-  {
-    id: "hsc",
-    t: "HSC Physics & Chemistry",
-    c: "Academic",
-    d: "6 months",
-    l: "Live + recorded",
-    p: "৳4,500",
-    i: "c1",
-    mentor: "Engr. Tanvir Ahmed (BUET)",
-    schedule: "Sun, Tue & Thu • 8:00 PM",
-    seats: "14 seats left",
-    topics: [
-      "Kinematics & Dynamics",
-      "Electricity & Magnetism",
-      "Organic Chemistry Mechanisms",
-      "Weekly CQ & MCQ Mock Tests",
-    ],
-  },
-  {
-    id: "webdev",
-    t: "Web Development & Coding Basics",
-    c: "Skills",
-    d: "4 months",
-    l: "Project based",
-    p: "৳6,000",
-    i: "c3",
-    mentor: "Arif Hossain (Senior Frontend Dev)",
-    schedule: "Fri & Sat • 9:00 PM",
-    seats: "6 seats left",
-    topics: [
-      "HTML5 & Modern Flex/Grid",
-      "JavaScript ES6+ & DOM Logic",
-      "React & Interactive UI Components",
-      "Building 5 Real Portfolio Projects",
-    ],
-  },
-  {
-    id: "karate",
-    t: "Karate & Self Defense Academy",
-    c: "Arts & Sports",
-    d: "6 months",
-    l: "Dojo sessions",
-    p: "৳3,200",
-    i: "c7",
-    mentor: "Sensei Mahmudul Hasan (Black Belt 3rd Dan)",
-    schedule: "Sat & Mon • 7:00 AM",
-    seats: "10 seats left",
-    topics: [
-      "Kihon (Stances, Punches & Blocks)",
-      "Kata Forms & Mindful Breathing",
-      "Kumite Self-Defense Techniques",
-      "Official Belt Rank Grading Exams",
-    ],
-  },
-  {
-    id: "spoken",
-    t: "Spoken English & Fluency",
-    c: "Language",
-    d: "3 months",
-    l: "Live classes",
-    p: "৳2,800",
-    i: "c2",
-    mentor: "Farhana Kabir (IELTS 8.5)",
-    schedule: "Mon & Wed • 7:30 PM",
-    seats: "8 seats left",
-    topics: [
-      "Phonics & Accent Reduction",
-      "Everyday Conversation Fluency",
-      "Public Speaking Mastery",
-      "1-on-1 Speaking Drill Breakouts",
-    ],
-  },
-  {
-    id: "hardware",
-    t: "Hardware, Circuits & Repair",
-    c: "Robotics & Tech",
-    d: "3 months",
-    l: "Lab workshop",
-    p: "৳4,800",
-    i: "c6",
-    mentor: "Mehedi Hasan (Electronics Lead)",
-    schedule: "Tue & Thu • 5:00 PM",
-    seats: "7 seats left",
-    topics: [
-      "Multimeter & Circuit Diagnostics",
-      "PC Assembly & Component Troubleshooting",
-      "Soldering & Power Supply Testing",
-      "Real Device Maintenance Drills",
-    ],
-  },
-  {
-    id: "green",
-    t: "Grow With Green: Nature & STEM",
-    c: "Academic",
-    d: "2 months",
-    l: "Outdoor & Lab",
-    p: "৳2,500",
-    i: "c8",
-    mentor: "Dr. Farzana Yasmin (Agricultural Scientist)",
-    schedule: "Fri morning • 9:00 AM",
-    seats: "12 seats left",
-    topics: [
-      "Botany & Photosynthesis Experiments",
-      "Soil Chemistry & Composting Labs",
-      "Urban Hydroponics & Gardening",
-      "Ecosystem Preservation Projects",
-    ],
-  },
-  {
-    id: "ssc",
-    t: "SSC Higher Mathematics",
-    c: "Academic",
-    d: "5 months",
-    l: "Live + recorded",
-    p: "৳3,800",
-    i: "c9",
-    mentor: "Shafiqul Islam (DU Applied Math)",
-    schedule: "Sat, Mon & Wed • 6:30 PM",
-    seats: "12 seats left",
-    topics: [
-      "Algebra, Sets & Functions",
-      "Trigonometric Identities & Heights",
-      "Geometry Proofs with Shortcuts",
-      "10 Years Past Board Paper Drills",
-    ],
-  },
-];
-
-const MENTORS = [
-  {
-    id: "m_robotic",
-    name: "Engr. Nayeem Siddique",
-    role: "Robotics & STEM Lead",
-    edu: "Mechatronics Engineer (BUET)",
-    university: "BUET",
-    dept: "Robotics & Tech",
-    badge: "🤖",
-    badgeFull: "Robotics Lab",
-    img: "/images/photos/robotic_class1-thumb.webp",
-    course: "Robotics & STEM Automation",
-    stats: "6+ Yrs • 1,200+ Students",
-    bio: "Passionate about empowering young innovators to design circuits, write clean microcontroller code, and construct functional autonomous bots from scratch.",
-  },
-  {
-    id: "m_art",
-    name: "Shabnam Mustari",
-    role: "Master Fine Arts Mentor",
-    edu: "Faculty of Fine Arts (DU)",
-    university: "University of Dhaka (DU)",
-    dept: "Creative Arts",
-    badge: "🎨",
-    badgeFull: "Fine Arts",
-    img: "/images/photos/art_class1-thumb.webp",
-    course: "Creative Arts & Painting Studio",
-    stats: "8+ Yrs • 950+ Artists",
-    bio: "Technique is learned through patient brushwork; vision is unlocked when mentors encourage freedom of expression.",
-  },
-  {
-    id: "m_physics",
-    name: "Engr. Tanvir Ahmed",
-    role: "Physics & Chemistry Lead",
-    edu: "B.Sc. Engineering (BUET)",
-    university: "BUET",
-    dept: "Academic & Science",
-    badge: "🔬",
-    badgeFull: "Science Lab",
-    img: "/images/photos/classroom1-thumb.webp",
-    course: "HSC Physics & Chemistry",
-    stats: "9+ Yrs • 3,400+ Achievers",
-    bio: "No memorizing formulas without visualizing the motion. Solve the physical logic first, and the numbers follow naturally.",
-  },
-  {
-    id: "m_webdev",
-    name: "Arif Hossain",
-    role: "Web & Software Lead",
-    edu: "Senior Frontend Developer",
-    university: "SUST",
-    dept: "Robotics & Tech",
-    badge: "💻",
-    badgeFull: "Coding Lab",
-    img: "/images/photos/computer_learning-thumb.webp",
-    course: "Web Development & Coding Basics",
-    stats: "7+ Yrs • 1,500+ Devs Trained",
-    bio: "You only learn code by writing bugs and fixing them live. We build real, deployable portfolio projects in every single sprint.",
-  },
-  {
-    id: "m_karate",
-    name: "Sensei Mahmudul Hasan",
-    role: "Chief Martial Arts Sensei",
-    edu: "Black Belt 3rd Dan Medalist",
-    university: "University of Dhaka (DU)",
-    dept: "Arts & Sports",
-    badge: "🥋",
-    badgeFull: "Karate Dojo",
-    img: "/images/photos/karate_class1-thumb.webp",
-    course: "Karate & Self Defense Academy",
-    stats: "10+ Yrs • 800+ Belts Graded",
-    bio: "True karate is not about fighting; it builds unwavering focus, mental discipline, humility, and everyday courage.",
-  },
-  {
-    id: "m_spoken",
-    name: "Farhana Kabir",
-    role: "Spoken English Coach",
-    edu: "IELTS 8.5 • British Council",
-    university: "Jahangirnagar University (JU)",
-    dept: "Language & Skills",
-    badge: "🗣️",
-    badgeFull: "Spoken Fluency",
-    img: "/images/photos/learn_with_fun-thumb.webp",
-    course: "Spoken English & Fluency",
-    stats: "5+ Yrs • 2,100+ Speakers",
-    bio: "Fluency is a habit, not an exam. Our interactive drills break hesitation from day one and give students real stage confidence.",
-  },
-  {
-    id: "m_hardware",
-    name: "Mehedi Hasan",
-    role: "Hardware & Electronics Lead",
-    edu: "Electronics Lab Director",
-    university: "DUET",
-    dept: "Robotics & Tech",
-    badge: "⚡",
-    badgeFull: "Hardware Lab",
-    img: "/images/photos/harware_fix_learning-thumb.webp",
-    course: "Hardware, Circuits & Repair",
-    stats: "6+ Yrs • 900+ Lab Grads",
-    bio: "Understanding how motherboards, power supplies, and traces work demystifies technology and sparks genuine engineering curiosity.",
-  },
-  {
-    id: "m_math",
-    name: "Shafiqul Islam",
-    role: "Higher Mathematics Lead",
-    edu: "M.Sc. Applied Math (DU)",
-    university: "University of Dhaka (DU)",
-    dept: "Academic & Science",
-    badge: "📐",
-    badgeFull: "Math Session",
-    img: "/images/photos/classroom3-thumb.webp",
-    course: "SSC Higher Mathematics",
-    stats: "8+ Yrs • 2,800+ Achievers",
-    bio: "Mathematics becomes joyous when you see the shortcut and the algebraic proof working together in harmony.",
-  },
-  {
-    id: "m_agri",
-    name: "Dr. Farzana Yasmin",
-    role: "Green Science & Biology",
-    edu: "Ph.D. Agricultural Science",
-    university: "Bangladesh Agricultural University (BAU)",
-    dept: "Academic & Science",
-    badge: "🌱",
-    badgeFull: "Green Science",
-    img: "/images/photos/grow_with_green-thumb.webp",
-    course: "Young Green Innovators",
-    stats: "7+ Yrs • 650+ Researchers",
-    bio: "Nurturing ecological awareness through hands-on botanical experiments and scientific discovery creates responsible scientists.",
-  },
-  {
-    id: "m_iot",
-    name: "Sadman Al-Amin",
-    role: "IoT & Automation Coach",
-    edu: "B.Sc. CSE • Embedded Systems",
-    university: "AUST",
-    dept: "Robotics & Tech",
-    badge: "⚙️",
-    badgeFull: "IoT Automation",
-    img: "/images/photos/robotic_class3-thumb.webp",
-    course: "Robotics & STEM Automation",
-    stats: "5+ Yrs • 780+ Builders",
-    bio: "Connecting physical hardware to intelligent cloud dashboards gives students the superpower of building real-world smart devices.",
-  },
-];
-
-const MOMENTS = [
-  {
-    id: "m1",
-    t: "Sensor Programming & Mechanics",
-    c: "Robotics & STEM",
-    tag: "Robotics Lab",
-    img: "m1",
-    desc: "Learners calibrating infrared sensors and programming motor drivers on autonomous obstacle-avoiding chassis.",
-  },
-  {
-    id: "m2",
-    t: "Fine Art Shading & Perspective Workshop",
-    c: "Creative Arts",
-    tag: "Art Studio",
-    img: "m2",
-    desc: "Students mastering light, shadow, and tonal gradations using graphite and charcoal under guidance.",
-  },
-  {
-    id: "m3",
-    t: "Interactive Science & Physics Classroom",
-    c: "Academic",
-    tag: "Smart Classroom",
-    img: "m3",
-    desc: "Step-by-step problem breakdown on kinematics and vector mechanics with live student participation.",
-  },
-  {
-    id: "m4",
-    t: "Martial Arts Dojo & Physical Discipline",
-    c: "Active & Sports",
-    tag: "Karate Dojo",
-    img: "m4",
-    desc: "Instilling focus, agility, self-defense discipline, and posture alignment in our weekly karate class.",
-  },
-  {
-    id: "m5",
-    t: "Digital Literacy & Computer Basics Lab",
-    c: "Tech & Coding",
-    tag: "Computer Lab",
-    img: "m5",
-    desc: "Hands-on software exploration, keyboard mastery, and coding fundamentals in our dedicated workstation lab.",
-  },
-  {
-    id: "m6",
-    t: "Hardware Diagnostics & Circuit Assembly",
-    c: "Tech & Coding",
-    tag: "Hardware Lab",
-    img: "m6",
-    desc: "Testing motherboard continuity, breadboard circuits, and diagnosing power supply issues safely.",
-  },
-  {
-    id: "m7",
-    t: "Grow With Green Outdoor Science Discovery",
-    c: "Academic",
-    tag: "Nature & Botany",
-    img: "m7",
-    desc: "Hands-on environmental botany where young students learn plant life cycles, soil ecosystems, and sustainability.",
-  },
-  {
-    id: "m8",
-    t: "Championship Bot Chassis Assembling",
-    c: "Robotics & STEM",
-    tag: "Robotics Lab",
-    img: "m8",
-    desc: "Constructing custom gear assemblies and aluminum frames for regional STEM robotics exhibitions.",
-  },
-  {
-    id: "m9",
-    t: "Color Theory & Creative Painting",
-    c: "Creative Arts",
-    tag: "Art Studio",
-    img: "m9",
-    desc: "Young artists blending primary and complementary hues to produce imaginative canvas paintings.",
-  },
-  {
-    id: "m10",
-    t: "Capstone Project Peer Collaboration",
-    c: "Robotics & Tech",
-    tag: "Project Lab",
-    img: "m10",
-    desc: "Students combining coding, hardware, and design to build full working prototypes together.",
-  },
-  {
-    id: "m11",
-    t: "Interactive Team Logic & Fun Challenges",
-    c: "Academic",
-    tag: "Fun & Learning",
-    img: "m11",
-    desc: "Engaging classroom games and collaborative quizzes that make complex concepts unforgettable.",
-  },
-  {
-    id: "m12",
-    t: "STEM Robotics Starter Workshop",
-    c: "Robotics & STEM",
-    tag: "Robotics Lab",
-    img: "m12",
-    desc: "Beginning robotics students discovering gear ratios, pulley dynamics, and foundational circuits.",
-  },
-];
-
-const PRACTICE_TASKS = [
-  {
-    subject: "HSC Physics",
-    topic: "Work, Power & Energy",
-    question:
-      "A body of mass 2 kg is dropped from a height of 10m. What is its kinetic energy just before hitting the ground? (Take g = 9.8 m/s²)",
-    options: ["98 Joules", "196 Joules", "392 Joules", "49 Joules"],
-    correct: 1,
-    explanation:
-      "By conservation of mechanical energy, Potential Energy at top = Kinetic Energy at bottom. KE = m × g × h = 2 kg × 9.8 m/s² × 10m = 196 Joules.",
-    mentorNote:
-      "Classic conservation of energy! Remember: you don't even need to calculate velocity first.",
-  },
-  {
-    subject: "Spoken English",
-    topic: "Natural Fluency",
-    question:
-      "Which response sounds most natural when a colleague thanks you for helping them with an important project?",
-    options: [
-      "No problem, don't mention it at all!",
-      "I was strictly obligated by my duty to assist.",
-      "Glad I could help! Let me know if you need anything else.",
-      "It is my extreme formal pleasure and honor.",
-    ],
-    correct: 2,
-    explanation:
-      "'Glad I could help!' is warm, polite, and universally used in both conversational and professional workplace environments.",
-    mentorNote:
-      "Tone is as vital as grammar! Natural friendly phrasing leaves the strongest positive impression.",
-  },
-  {
-    subject: "Web Development",
-    topic: "Modern CSS",
-    question:
-      "What is the cleanest modern CSS rule to center a child item both horizontally and vertically inside its container?",
-    options: [
-      "display: flex; justify-content: center; align-items: center;",
-      "margin: auto; float: center; align: center;",
-      "text-align: center; vertical-align: middle;",
-      "position: absolute; left: 50%; right: 50%;",
-    ],
-    correct: 0,
-    explanation:
-      "Flexbox with 'justify-content: center' (main axis) and 'align-items: center' (cross axis) centers children predictably across any viewport.",
-    mentorNote:
-      "Spot on! Flexbox or CSS Grid ('display: grid; place-items: center;') are current industry best practices.",
-  },
-];
-
-const FAQS = [
-  {
-    q: "What happens if I miss a live class?",
-    a: "Every live class is recorded in HD and posted on your student portal within 2 hours. You get lifetime access to all recordings, the mentor's slide annotations, and daily practice sets.",
-  },
-  {
-    q: "How does the 24-hour mentor feedback work?",
-    a: "After each lesson, you solve and submit your practice task on the student portal. Your assigned subject mentor reviews your steps, calculations, or code line-by-line and leaves personalized written and audio notes within 24 hours.",
-  },
-  {
-    q: "What payment methods are accepted?",
-    a: "We accept bKash, Nagad, Rocket, all major local credit/debit cards, and bank transfers. For courses 4 months or longer, you can pay in two convenient monthly installments with 0% extra fee.",
-  },
-  {
-    q: "Will I receive a verified certificate upon completion?",
-    a: "Yes! Students who submit at least 80% of daily practice tasks and pass the final mock exam receive a verified digital certificate shareable on LinkedIn and your CV.",
-  },
-  {
-    q: "Can I pause or transfer batches if my college exams clash?",
-    a: "Yes! We provide one free batch pause or transfer per student so your learning journey adapts seamlessly around your academic exam schedule.",
-  },
-];
-
-const STORY = [
-  [
-    "2014",
-    "Five students, one rented room, and a rule: every lesson ends with practice.",
-  ],
-  [
-    "2018",
-    "We opened a second branch and began recording every class for revision.",
-  ],
-  ["2022", "Onushilon went online. Students from 40 districts joined live."],
-  ["Today", "Over 12,000 learners practise with us every week."],
-];
-
-const VOICES = [
-  [
-    "The art mentors here don't just teach techniques; they helped me discover my own painting style. Seeing my artwork on exhibition was a dream come true!",
-    "Tasnim Akter",
-    "Creative Arts & Design graduate",
-    "t1",
-  ],
-  [
-    "Building and programming an autonomous robot with my own hands was unforgettable. The robotics lab mentors guided us through every sensor and circuit.",
-    "Sadman Sakib",
-    "Robotics & STEM batch 2024",
-    "t2",
-  ],
-  [
-    "Practice every single day finally made physics equations click for me. My mentor reviewed every step of my solution, not just the final number.",
-    "Nusrat Jahan",
-    "HSC Science achiever, Dhaka",
-    "t3",
-  ],
-  [
-    "I was terrified of speaking English in public. The interactive fun sessions and 1-on-1 speaking drills completely transformed my fluency and confidence.",
-    "Rafiul Islam",
-    "Spoken English graduate",
-    "t4",
-  ],
-];
+import {
+  LanguageProvider,
+  useI18n,
+} from "../lib/i18n/LanguageContext";
+import LanguageSwitcher from "../lib/i18n/LanguageSwitcher";
+import { COURSE_CATEGORIES, COURSES } from "../lib/i18n/coursesData";
+import { MENTOR_CATEGORIES, MENTORS } from "../lib/i18n/mentorsData";
+import { MOMENTS_CATEGORIES, MOMENTS } from "../lib/i18n/momentsData";
+import { getHeroStreams } from "../lib/i18n/heroStreams";
 
 /* Image with a coloured placeholder until a file path is set in lib/assets.js */
 const Pic = ({ k, alt = "", cls = "", style, children }) => (
@@ -562,10 +38,12 @@ const Pic = ({ k, alt = "", cls = "", style, children }) => (
 );
 
 function Count({ to, suffix = "" }) {
+  const { formatNumber, isBn } = useI18n();
   const ref = useRef(null);
   const inView = useInView(ref, { once: true });
   const v = useMotionValue(0);
   const [n, setN] = useState(0);
+
   useEffect(() => {
     if (!inView) return;
     const c = animate(v, to, {
@@ -575,9 +53,14 @@ function Count({ to, suffix = "" }) {
     });
     return c.stop;
   }, [inView, to, v]);
+
+  const formatted = isBn
+    ? formatNumber(n.toLocaleString("en-US"))
+    : n.toLocaleString();
+
   return (
     <span ref={ref}>
-      {n.toLocaleString()}
+      {formatted}
       {suffix}
     </span>
   );
@@ -614,11 +97,14 @@ function Tilt({ children, className, onClick }) {
 }
 
 function Nav() {
+  const { dict, isBn } = useI18n();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState("home");
   const [scrolled, setScrolled] = useState(false);
   const { scrollYProgress, scrollY } = useScroll();
   const bar = useSpring(scrollYProgress, { stiffness: 120, damping: 28 });
+
+  const navItems = dict.nav;
 
   useEffect(() => {
     setScrolled(scrollY.get() > 100);
@@ -631,14 +117,14 @@ function Nav() {
   useEffect(() => {
     const io = new IntersectionObserver(
       (es) => es.forEach((e) => e.isIntersecting && setActive(e.target.id)),
-      { rootMargin: "-45% 0px -50% 0px" },
+      { rootMargin: "-45% 0px -50% 0px" }
     );
-    NAV.forEach(
+    navItems.forEach(
       ([id]) =>
-        document.getElementById(id) && io.observe(document.getElementById(id)),
+        document.getElementById(id) && io.observe(document.getElementById(id))
     );
     return () => io.disconnect();
-  }, []);
+  }, [navItems]);
 
   return (
     <>
@@ -656,15 +142,16 @@ function Nav() {
           >
             <a href="#home" className="logo">
               {LOGO ? (
-                <img src={LOGO} alt="Onushilon" />
+                <img src={LOGO} alt={isBn ? "অনুশীলন" : "Onushilon"} />
               ) : (
                 <>
-                  <i>অ</i>Onushilon
+                  <i>অ</i>
+                  {isBn ? "অনুশীলন" : "Onushilon"}
                 </>
               )}
             </a>
             <div className="links">
-              {NAV.slice(1, -1).map(([id, l]) => (
+              {navItems.slice(1, -1).map(([id, l]) => (
                 <a
                   key={id}
                   href={`#${id}`}
@@ -673,8 +160,9 @@ function Nav() {
                   {l}
                 </a>
               ))}
+              <LanguageSwitcher />
               <a href="#join" className="btn" style={{ padding: "10px 22px" }}>
-                Enrol now
+                {dict.enrolNow}
               </a>
             </div>
             <button
@@ -687,25 +175,31 @@ function Nav() {
             </button>
           </motion.nav>
         ) : (
-          <motion.button
-            key="hero-menu-btn"
-            className={`hero-menu-btn ${open ? "open" : ""}`}
-            onClick={() => setOpen(!open)}
-            aria-label={open ? "Close menu" : "Open menu"}
-            aria-expanded={open}
-            initial={{ opacity: 0, scale: 0.8, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: -10 }}
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.94 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <span className="burger-icon">
-              <span className="line l1" />
-              <span className="line l2" />
-              <span className="line l3" />
-            </span>
-          </motion.button>
+          <div className="hero-top-controls">
+            <div className="hero-lang-wrap">
+              <LanguageSwitcher />
+            </div>
+            <motion.button
+              key="hero-menu-btn"
+              className={`hero-menu-btn ${open ? "open" : ""}`}
+              onClick={() => setOpen(!open)}
+              aria-label={open ? "Close menu" : "Open menu"}
+              aria-expanded={open}
+              initial={{ opacity: 0, scale: 0.8, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: -10 }}
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.94 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              style={{ position: "static" }}
+            >
+              <span className="burger-icon">
+                <span className="line l1" />
+                <span className="line l2" />
+                <span className="line l3" />
+              </span>
+            </motion.button>
+          </div>
         )}
       </AnimatePresence>
       <AnimatePresence>
@@ -724,18 +218,33 @@ function Nav() {
             >
               ✕
             </button>
-            {NAV.map(([id, l], i) => (
+            {navItems.map(([id, l], i) => (
               <motion.a
                 key={id}
                 href={`#${id}`}
                 onClick={() => setOpen(false)}
                 initial={{ y: 40, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.25 + i * 0.05 }}
+                transition={{ delay: 0.25 + i * 0.04 }}
               >
                 {l}
               </motion.a>
             ))}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "12px" }}
+            >
+              <LanguageSwitcher isSheet={true} />
+              <a
+                href={PHONE_HREF}
+                className="btn btn-call sheet-call"
+                onClick={() => setOpen(false)}
+              >
+                {dict.hero.callNow}
+              </a>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -752,6 +261,8 @@ function RisingHeroBox({
   parallaxY,
   parallaxRotate,
   onPhotoClick,
+  tooltipText,
+  pausedText,
 }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -816,7 +327,7 @@ function RisingHeroBox({
             transition: { duration: 0.9, ease: [0.22, 1, 0.36, 1] },
           }}
           onClick={() => onPhotoClick && onPhotoClick(current)}
-          title="Click to view full photo • Hover to pause"
+          title={tooltipText}
         >
           <img
             src={current.src}
@@ -829,7 +340,7 @@ function RisingHeroBox({
           <div className="hero-card-overlay">
             <span className="hero-badge">{current.badge}</span>
           </div>
-          <span className="hero-card-pause-hint">⏸ Paused</span>
+          <span className="hero-card-pause-hint">{pausedText}</span>
         </motion.div>
       </AnimatePresence>
     </motion.div>
@@ -837,6 +348,7 @@ function RisingHeroBox({
 }
 
 function Hero({ onPhotoClick }) {
+  const { dict, lang } = useI18n();
   const ref = useRef(null);
   const reduce = useReducedMotion();
   const { scrollYProgress: p } = useScroll({
@@ -850,46 +362,55 @@ function Hero({ onPhotoClick }) {
   const r1 = useTransform(p, [0, 1], [-6, 14 * k]);
   const ty = useTransform(p, [0, 1], [0, 120 * k]);
   const fade = useTransform(p, [0.5, 1], [1, 0]);
-  const words = ["Learn", "by", "practice."];
+
+  const streams = getHeroStreams(lang);
+  const words = dict.hero.words;
 
   return (
     <section id="home" className="hero" ref={ref}>
       <div className="hero-in">
         <motion.div className="glow" style={{ y: y2 }} />
 
-        {/* The whole box comes from the bottom, rises up with fade, stays calmly, and hides at top */}
         <RisingHeroBox
-          stream={HERO_CARD_STREAMS[0]}
+          stream={streams[0]}
           className="f1"
           parallaxY={y1}
           parallaxRotate={r1}
           interval={8000}
           initialDelay={0}
           onPhotoClick={onPhotoClick}
+          tooltipText={dict.hero.photoTooltip}
+          pausedText={dict.hero.paused}
         />
         <RisingHeroBox
-          stream={HERO_CARD_STREAMS[1]}
+          stream={streams[1]}
           className="f2"
           parallaxY={y2}
           interval={8000}
           initialDelay={2000}
           onPhotoClick={onPhotoClick}
+          tooltipText={dict.hero.photoTooltip}
+          pausedText={dict.hero.paused}
         />
         <RisingHeroBox
-          stream={HERO_CARD_STREAMS[2]}
+          stream={streams[2]}
           className="f3"
           parallaxY={y3}
           interval={8000}
           initialDelay={4000}
           onPhotoClick={onPhotoClick}
+          tooltipText={dict.hero.photoTooltip}
+          pausedText={dict.hero.paused}
         />
         <RisingHeroBox
-          stream={HERO_CARD_STREAMS[3]}
+          stream={streams[3]}
           className="f4"
           parallaxY={y1}
           interval={8000}
           initialDelay={6000}
           onPhotoClick={onPhotoClick}
+          tooltipText={dict.hero.photoTooltip}
+          pausedText={dict.hero.paused}
         />
 
         <motion.div
@@ -903,7 +424,7 @@ function Hero({ onPhotoClick }) {
         >
           <h1>
             {words.map((w, i) => (
-              <span key={w}>
+              <span key={`${w}-${i}`}>
                 <motion.span
                   style={{ display: "block" }}
                   initial={{ y: "110%" }}
@@ -914,7 +435,7 @@ function Hero({ onPhotoClick }) {
                     ease: [0.16, 1, 0.3, 1],
                   }}
                 >
-                  {i === 2 ? <em>{w}</em> : w}
+                  {i === words.length - 1 ? <em>{w}</em> : w}
                 </motion.span>
               </span>
             ))}
@@ -925,8 +446,7 @@ function Hero({ onPhotoClick }) {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.9 }}
           >
-            Onushilon Academy gives you expert mentors, live interactive classes
-            and daily exercises, from SSC to job-ready tech skills.
+            {dict.hero.sub}
           </motion.p>
           <motion.div
             className="cta"
@@ -935,17 +455,17 @@ function Hero({ onPhotoClick }) {
             transition={{ delay: 1.1 }}
           >
             <a className="btn" href="#courses">
-              Browse courses
+              {dict.hero.browseCourses}
             </a>
             <a className="btn ghost" href="#moments">
-              Explore class moments
+              {dict.hero.exploreMoments}
             </a>
             <a
               className="btn-call"
               href={PHONE_HREF}
               style={{ padding: "14px 22px", fontSize: "0.95rem" }}
             >
-              📞 Call now
+              {dict.hero.callNow}
             </a>
           </motion.div>
         </motion.div>
@@ -955,14 +475,8 @@ function Hero({ onPhotoClick }) {
 }
 
 function Marquee() {
-  const items = [
-    "Live classes",
-    "Daily practice",
-    "Mock exams",
-    "Mentor feedback",
-    "Recorded lessons",
-    "Study groups",
-  ];
+  const { dict } = useI18n();
+  const items = dict.marquee;
   const row = [...items, ...items];
   return (
     <div className="marq" aria-hidden>
@@ -984,6 +498,7 @@ function Marquee() {
 }
 
 function Story() {
+  const { dict } = useI18n();
   const ref = useRef(null);
   const { scrollYProgress: p } = useScroll({
     target: ref,
@@ -998,7 +513,7 @@ function Story() {
           <motion.div className="a ph" style={{ y: a }}>
             <Pic
               k="story"
-              alt="Our first classroom"
+              alt="Classroom"
               style={{ height: "100%" }}
             />
           </motion.div>
@@ -1017,15 +532,11 @@ function Story() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            Onushilon means practice. We took it literally.
+            {dict.story.h2}
           </motion.h2>
-          <p className="lead">
-            We started because lectures alone never made anyone truly confident.
-            Every course here is built around doing the work, getting detailed
-            mentor feedback, and mastering the concept.
-          </p>
+          <p className="lead">{dict.story.lead}</p>
           <div className="tl">
-            {STORY.map(([y, t], i) => (
+            {dict.story.timeline.map(([y, t], i) => (
               <motion.div
                 key={y}
                 initial={{ opacity: 0, x: -24 }}
@@ -1045,24 +556,24 @@ function Story() {
 }
 
 function Courses({ onOpenModal, onEnrol }) {
-  const cats = [
-    "All",
-    "Robotics & Tech",
-    "Arts & Sports",
-    "Academic",
-    "Language",
-    "Skills",
-  ];
-  const [cat, setCat] = useState("All");
+  const { dict, lang } = useI18n();
+  const cats = COURSE_CATEGORIES[lang] || COURSE_CATEGORIES.bn;
+  const courseList = COURSES[lang] || COURSES.bn;
+
+  const [activeCatId, setActiveCatId] = useState("all");
   const [search, setSearch] = useState("");
 
-  const list = COURSES.filter((c) => {
-    const matchCat = cat === "All" || c.c === cat;
+  const list = courseList.filter((c) => {
+    const matchCat =
+      activeCatId === "all" ||
+      c.c === activeCatId ||
+      c.categoryName === activeCatId;
     const q = search.trim().toLowerCase();
     const matchSearch =
       !q ||
       c.t.toLowerCase().includes(q) ||
       c.c.toLowerCase().includes(q) ||
+      (c.categoryName && c.categoryName.toLowerCase().includes(q)) ||
       c.mentor.toLowerCase().includes(q) ||
       c.topics.some((tp) => tp.toLowerCase().includes(q));
     return matchCat && matchSearch;
@@ -1071,30 +582,27 @@ function Courses({ onOpenModal, onEnrol }) {
   return (
     <section id="courses" className="courses">
       <div className="wrap">
-        <h2 className="h2">Pick a course and start this week</h2>
-        <p className="lead">
-          New batches begin every month. Each course includes weekly practice
-          sets and an expert mentor who reviews your progress.
-        </p>
+        <h2 className="h2">{dict.courses.h2}</h2>
+        <p className="lead">{dict.courses.lead}</p>
 
         <div className="courses-top">
           <div className="tabs" role="tablist">
-            {cats.map((c) => (
+            {cats.map((item) => (
               <button
-                key={c}
+                key={item.id}
                 role="tab"
-                aria-selected={cat === c}
-                className={`tab ${cat === c ? "on" : ""}`}
-                onClick={() => setCat(c)}
+                aria-selected={activeCatId === item.id}
+                className={`tab ${activeCatId === item.id ? "on" : ""}`}
+                onClick={() => setActiveCatId(item.id)}
               >
-                {cat === c && (
+                {activeCatId === item.id && (
                   <motion.span
                     layoutId="course-tab-pill"
                     className="tab-pill"
                     transition={{ type: "spring", stiffness: 400, damping: 32 }}
                   />
                 )}
-                <span className="tab-label">{c}</span>
+                <span className="tab-label">{item.label}</span>
               </button>
             ))}
           </div>
@@ -1102,10 +610,10 @@ function Courses({ onOpenModal, onEnrol }) {
             <span className="search-icon">🔍</span>
             <input
               type="text"
-              placeholder="Search courses, topics..."
+              placeholder={dict.courses.searchPlaceholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              aria-label="Search courses"
+              aria-label={dict.courses.searchAria}
             />
           </div>
         </div>
@@ -1114,7 +622,7 @@ function Courses({ onOpenModal, onEnrol }) {
           <AnimatePresence mode="popLayout">
             {list.length > 0 ? (
               list.map((c) => (
-                <Tilt key={c.t} className="card" onClick={() => onOpenModal(c)}>
+                <Tilt key={c.id} className="card" onClick={() => onOpenModal(c)}>
                   <div style={{ position: "relative" }}>
                     <Pic
                       k={c.i}
@@ -1123,8 +631,8 @@ function Courses({ onOpenModal, onEnrol }) {
                         c.c === "Language"
                           ? "alt"
                           : c.c === "Skills"
-                            ? "alt2"
-                            : ""
+                          ? "alt2"
+                          : ""
                       }
                     />
                     <div className="card-badges">
@@ -1133,7 +641,7 @@ function Courses({ onOpenModal, onEnrol }) {
                   </div>
                   <div className="body">
                     <div className="meta">
-                      <span>{c.c}</span>
+                      <span>{c.categoryName || c.c}</span>
                       <span>{c.d}</span>
                     </div>
                     <h3>{c.t}</h3>
@@ -1148,13 +656,13 @@ function Courses({ onOpenModal, onEnrol }) {
                           className="btn-outline"
                           onClick={() => onOpenModal(c)}
                         >
-                          Details
+                          {dict.courses.detailsBtn}
                         </button>
                         <button
                           className="btn-primary"
                           onClick={() => onEnrol(c.t)}
                         >
-                          Enrol
+                          {dict.courses.enrolBtn}
                         </button>
                       </div>
                     </div>
@@ -1163,19 +671,21 @@ function Courses({ onOpenModal, onEnrol }) {
               ))
             ) : (
               <div className="empty-courses">
-                <h3>No courses found matching "{search}"</h3>
+                <h3>
+                  {dict.courses.emptyTitle} "{search}"
+                </h3>
                 <p style={{ opacity: 0.75, marginTop: 8 }}>
-                  Try clearing your search query or switching categories.
+                  {dict.courses.emptySub}
                 </p>
                 <button
                   className="btn"
                   onClick={() => {
                     setSearch("");
-                    setCat("All");
+                    setActiveCatId("all");
                   }}
                   style={{ marginTop: 16 }}
                 >
-                  Reset Filters
+                  {dict.courses.resetFilters}
                 </button>
               </div>
             )}
@@ -1187,7 +697,9 @@ function Courses({ onOpenModal, onEnrol }) {
 }
 
 function CourseModal({ course, onClose, onEnrol }) {
+  const { dict } = useI18n();
   if (!course) return null;
+
   return (
     <AnimatePresence>
       <motion.div
@@ -1208,13 +720,13 @@ function CourseModal({ course, onClose, onEnrol }) {
           <button
             className="modal-close"
             onClick={onClose}
-            aria-label="Close modal"
+            aria-label={dict.modal.closeAria}
           >
             ✕
           </button>
           <div>
             <span className="modal-tag">
-              {course.c} • {course.d}
+              {course.categoryName || course.c} • {course.d}
             </span>
             <div className="modal-header">
               <h3>{course.t}</h3>
@@ -1222,23 +734,23 @@ function CourseModal({ course, onClose, onEnrol }) {
           </div>
           <div className="modal-mentor">
             <span>
-              🧑‍🏫 <b>Lead Mentor:</b> {course.mentor}
+              🧑‍🏫 <b>{dict.modal.leadMentor}</b> {course.mentor}
             </span>
           </div>
           <div className="modal-info-grid">
             <div className="modal-info-item">
-              <span>Live Schedule</span>
+              <span>{dict.modal.liveSchedule}</span>
               <b>{course.schedule}</b>
             </div>
             <div className="modal-info-item">
-              <span>Format & Batch</span>
+              <span>{dict.modal.formatAndBatch}</span>
               <b>
                 {course.l} • {course.seats}
               </b>
             </div>
           </div>
           <div className="modal-topics">
-            <h4>Key Syllabus & Practice Topics:</h4>
+            <h4>{dict.modal.keyTopics}</h4>
             <ul>
               {course.topics.map((tp, idx) => (
                 <li key={idx}>
@@ -1249,14 +761,14 @@ function CourseModal({ course, onClose, onEnrol }) {
           </div>
           <div className="modal-actions">
             <div>
-              <span className="modal-fee-label">Complete Course Fee</span>
+              <span className="modal-fee-label">{dict.modal.feeLabel}</span>
               <span className="modal-price">{course.p}</span>
             </div>
             <button
               className="btn btn-modal-enrol"
               onClick={() => onEnrol(course.t)}
             >
-              Proceed to Enrol →
+              {dict.modal.proceedBtn}
             </button>
           </div>
         </motion.div>
@@ -1266,20 +778,20 @@ function CourseModal({ course, onClose, onEnrol }) {
 }
 
 function Mentors({ onEnrol }) {
-  const cats = [
-    "All Mentors",
-    "Robotics & Tech",
-    "Creative Arts",
-    "Academic & Science",
-    "Arts & Sports",
-    "Language & Skills",
-  ];
-  const [cat, setCat] = useState("All Mentors");
+  const { dict, lang, toBn } = useI18n();
+  const cats = MENTOR_CATEGORIES[lang] || MENTOR_CATEGORIES.bn;
+  const mentorsList = MENTORS[lang] || MENTORS.bn;
+
+  const [activeCatId, setActiveCatId] = useState("all");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [visibleCount, setVisibleCount] = useState(4);
 
   const list =
-    cat === "All Mentors" ? MENTORS : MENTORS.filter((m) => m.dept === cat);
+    activeCatId === "all"
+      ? mentorsList
+      : mentorsList.filter(
+          (m) => m.dept === activeCatId || m.categoryName === activeCatId
+        );
 
   useEffect(() => {
     const handleResize = () => {
@@ -1297,8 +809,8 @@ function Mentors({ onEnrol }) {
   const total = list.length;
   const maxIndex = Math.max(0, total - visibleCount);
 
-  const handleCatChange = (newCat) => {
-    setCat(newCat);
+  const handleCatChange = (newCatId) => {
+    setActiveCatId(newCatId);
     setCurrentIndex(0);
   };
 
@@ -1312,36 +824,38 @@ function Mentors({ onEnrol }) {
 
   const displayedEnd = Math.min(currentIndex + visibleCount, total);
 
+  const counterText =
+    total > 0
+      ? dict.mentors.counterTemplate
+          .replace("{start}", toBn(currentIndex + 1))
+          .replace("{end}", toBn(displayedEnd))
+          .replace("{total}", toBn(total))
+      : dict.mentors.counterZero;
+
   return (
     <section id="mentors" className="mentors-sec">
       <div className="wrap">
         <div className="mentors-header">
           <div className="mentors-header-text">
-            <span className="mentors-kicker">Faculty & Mentorship</span>
-            <h2 className="h2">Learn from practicing mentors</h2>
+            <span className="mentors-kicker">{dict.mentors.kicker}</span>
+            <h2 className="h2">{dict.mentors.h2}</h2>
             <p className="lead" style={{ marginTop: "8px" }}>
-              Our faculty consists of practicing engineers, artists, university
-              educators, and martial arts masters who review your work
-              personally every single week.
+              {dict.mentors.lead}
             </p>
           </div>
 
           <div className="mentors-ctrls-bar">
             <div className="mentor-counter-pill">
               <span className="mentor-counter-dot" />
-              <span>
-                {total > 0
-                  ? `${currentIndex + 1}–${displayedEnd} of ${total} Mentors`
-                  : "0 Mentors"}
-              </span>
+              <span>{counterText}</span>
             </div>
             <div className="mentor-nav-arrows">
               <button
                 type="button"
                 className="mentor-nav-btn"
                 onClick={handlePrev}
-                aria-label="Previous mentors"
-                title="Previous mentors"
+                aria-label={dict.mentors.prevAria}
+                title={dict.mentors.prevAria}
                 disabled={total <= visibleCount}
                 style={{
                   opacity: total <= visibleCount ? 0.4 : 1,
@@ -1354,8 +868,8 @@ function Mentors({ onEnrol }) {
                 type="button"
                 className="mentor-nav-btn"
                 onClick={handleNext}
-                aria-label="Next mentors"
-                title="Next mentors"
+                aria-label={dict.mentors.nextAria}
+                title={dict.mentors.nextAria}
                 disabled={total <= visibleCount}
                 style={{
                   opacity: total <= visibleCount ? 0.4 : 1,
@@ -1370,22 +884,22 @@ function Mentors({ onEnrol }) {
 
         <div className="courses-top" style={{ marginBottom: "24px" }}>
           <div className="tabs" role="tablist">
-            {cats.map((c) => (
+            {cats.map((item) => (
               <button
-                key={c}
+                key={item.id}
                 role="tab"
-                aria-selected={cat === c}
-                className={`tab ${cat === c ? "on" : ""}`}
-                onClick={() => handleCatChange(c)}
+                aria-selected={activeCatId === item.id}
+                className={`tab ${activeCatId === item.id ? "on" : ""}`}
+                onClick={() => handleCatChange(item.id)}
               >
-                {cat === c && (
+                {activeCatId === item.id && (
                   <motion.span
                     layoutId="mentor-tab-pill"
                     className="tab-pill"
                     transition={{ type: "spring", stiffness: 400, damping: 32 }}
                   />
                 )}
-                <span className="tab-label">{c}</span>
+                <span className="tab-label">{item.label}</span>
               </button>
             ))}
           </div>
@@ -1450,11 +964,11 @@ function Mentors({ onEnrol }) {
                       onClick={() =>
                         setCurrentIndex(Math.min(p * visibleCount, maxIndex))
                       }
-                      aria-label={`Go to mentors page ${p + 1}`}
-                      title={`Page ${p + 1}`}
+                      aria-label={dict.mentors.pageAria.replace("{p}", toBn(p + 1))}
+                      title={dict.mentors.pageTitle.replace("{p}", toBn(p + 1))}
                     />
                   );
-                },
+                }
               )}
             </div>
           )}
@@ -1465,12 +979,15 @@ function Mentors({ onEnrol }) {
 }
 
 function PracticeArena() {
+  const { dict, toBn } = useI18n();
+  const tasks = dict.practice.tasks;
+
   const [activeTab, setActiveTab] = useState(0);
   const [selectedOpt, setSelectedOpt] = useState(null);
   const [streak, setStreak] = useState(0);
   const [completed, setCompleted] = useState({});
 
-  const task = PRACTICE_TASKS[activeTab];
+  const task = tasks[activeTab] || tasks[0];
 
   const handleSelect = (idx) => {
     if (selectedOpt !== null) return;
@@ -1494,19 +1011,18 @@ function PracticeArena() {
         <div
           style={{ textAlign: "center", maxWidth: "680px", margin: "0 auto" }}
         >
-          <span className="quiz-badge">Interactive Demo</span>
+          <span className="quiz-badge">{dict.practice.badge}</span>
           <h2 className="h2" style={{ margin: "12px auto 0" }}>
-            Experience Onushilon: Try a Practice Task
+            {dict.practice.h2}
           </h2>
           <p className="lead" style={{ margin: "14px auto 0" }}>
-            The best way to understand our methodology is to experience it.
-            Solve a question below and see how instant mentor feedback works.
+            {dict.practice.lead}
           </p>
         </div>
 
         <div className="practice-container">
           <div className="subject-tabs">
-            {PRACTICE_TASKS.map((t, idx) => (
+            {tasks.map((t, idx) => (
               <button
                 key={t.subject}
                 className={`sub-tab ${activeTab === idx ? "active" : ""}`}
@@ -1525,10 +1041,13 @@ function PracticeArena() {
                 fontWeight: 600,
               }}
             >
-              Topic: <b>{task.topic}</b>
+              {dict.practice.topicLabel} <b>{task.topic}</b>
             </span>
             <span className="quiz-streak">
-              🔥 Streak: <b>{streak} solved</b>
+              {dict.practice.streakLabel}{" "}
+              <b>
+                {toBn(streak)} {dict.practice.solvedSuffix}
+              </b>
             </span>
           </div>
 
@@ -1568,8 +1087,8 @@ function PracticeArena() {
                     🧑‍🏫{" "}
                     <b>
                       {selectedOpt === task.correct
-                        ? "Excellent work! Mentor feedback:"
-                        : "Mentor guidance:"}
+                        ? dict.practice.feedbackCorrect
+                        : dict.practice.feedbackWrong}
                     </b>
                   </span>
                 </div>
@@ -1584,15 +1103,15 @@ function PracticeArena() {
           <div className="practice-actions">
             <span style={{ fontSize: "0.9rem", opacity: 0.75 }}>
               {selectedOpt === null
-                ? "👉 Select an answer above to reveal mentor guidance"
-                : "Ready for regular daily practice?"}
+                ? dict.practice.selectHint
+                : dict.practice.readyText}
             </span>
             <a
               href="#courses"
               className="btn"
               style={{ padding: "10px 22px", fontSize: "0.95rem" }}
             >
-              Explore Full Courses →
+              {dict.practice.exploreBtn}
             </a>
           </div>
         </div>
@@ -1602,48 +1121,43 @@ function PracticeArena() {
 }
 
 function Moments({ onOpenLightbox }) {
-  const cats = [
-    "All Moments",
-    "Robotics & STEM",
-    "Creative Arts",
-    "Tech & Coding",
-    "Active & Sports",
-    "Academic",
-  ];
-  const [cat, setCat] = useState("All Moments");
+  const { dict, lang } = useI18n();
+  const cats = MOMENTS_CATEGORIES[lang] || MOMENTS_CATEGORIES.bn;
+  const momentsList = MOMENTS[lang] || MOMENTS.bn;
+
+  const [activeCatId, setActiveCatId] = useState("all");
 
   const list =
-    cat === "All Moments" ? MOMENTS : MOMENTS.filter((m) => m.c === cat);
+    activeCatId === "all"
+      ? momentsList
+      : momentsList.filter((m) => m.c === activeCatId);
 
   return (
     <section id="moments" className="moments-sec">
       <div className="wrap">
         <div style={{ maxWidth: "700px" }}>
-          <h2 className="h2">Class moments & life at Onushilon</h2>
-          <p className="lead">
-            Take an authentic look inside our robotics labs, art workshops,
-            coding studios, karate dojo, and science classrooms.
-          </p>
+          <h2 className="h2">{dict.moments.h2}</h2>
+          <p className="lead">{dict.moments.lead}</p>
         </div>
 
         <div className="moments-top">
           <div className="tabs" role="tablist">
-            {cats.map((c) => (
+            {cats.map((item) => (
               <button
-                key={c}
+                key={item.id}
                 role="tab"
-                aria-selected={cat === c}
-                className={`tab ${cat === c ? "on" : ""}`}
-                onClick={() => setCat(c)}
+                aria-selected={activeCatId === item.id}
+                className={`tab ${activeCatId === item.id ? "on" : ""}`}
+                onClick={() => setActiveCatId(item.id)}
               >
-                {cat === c && (
+                {activeCatId === item.id && (
                   <motion.span
                     layoutId="moments-pill"
                     className="tab-pill"
                     transition={{ type: "spring", stiffness: 400, damping: 32 }}
                   />
                 )}
-                <span className="tab-label">{c}</span>
+                <span className="tab-label">{item.label}</span>
               </button>
             ))}
           </div>
@@ -1690,6 +1204,7 @@ function Moments({ onOpenLightbox }) {
 }
 
 function LightboxModal({ activeIndex, items, onClose, onNavigate }) {
+  const { dict, toBn } = useI18n();
   if (activeIndex === null || !items || !items[activeIndex]) return null;
   const current = items[activeIndex];
 
@@ -1707,9 +1222,13 @@ function LightboxModal({ activeIndex, items, onClose, onNavigate }) {
     current.src ||
     (current.img && IMG[current.img]) ||
     (current.k && IMG[current.k]);
-  const title = current.t || current.title || "Academy Moment";
-  const cat = current.c || current.tag || current.badge || "Onushilon Academy";
+  const title = current.t || current.title || dict.lightbox.defaultTitle;
+  const cat = current.c || current.tag || current.badge || dict.lightbox.defaultCat;
   const desc = current.desc || current.title || "";
+
+  const counterText = dict.lightbox.counterTemplate
+    .replace("{current}", toBn(activeIndex + 1))
+    .replace("{total}", toBn(items.length));
 
   return (
     <AnimatePresence>
@@ -1723,7 +1242,7 @@ function LightboxModal({ activeIndex, items, onClose, onNavigate }) {
         <button
           className="lightbox-close"
           onClick={onClose}
-          aria-label="Close lightbox"
+          aria-label={dict.lightbox.closeAria}
         >
           ✕
         </button>
@@ -1732,14 +1251,14 @@ function LightboxModal({ activeIndex, items, onClose, onNavigate }) {
             <button
               className="lightbox-nav-btn lightbox-prev"
               onClick={prev}
-              aria-label="Previous moment"
+              aria-label={dict.lightbox.prevAria}
             >
               ‹
             </button>
             <button
               className="lightbox-nav-btn lightbox-next"
               onClick={next}
-              aria-label="Next moment"
+              aria-label={dict.lightbox.nextAria}
             >
               ›
             </button>
@@ -1789,7 +1308,7 @@ function LightboxModal({ activeIndex, items, onClose, onNavigate }) {
               )}
             </div>
             <span style={{ opacity: 0.6, fontSize: "0.9rem" }}>
-              {activeIndex + 1} of {items.length}
+              {counterText}
             </span>
           </div>
         </motion.div>
@@ -1799,30 +1318,15 @@ function LightboxModal({ activeIndex, items, onClose, onNavigate }) {
 }
 
 function Why() {
-  const items = [
-    [
-      "Mentors who read your work",
-      "Every submission gets personalized written and audio feedback within 24 hours.",
-    ],
-    [
-      "Learn at your pace",
-      "Every live class is recorded in HD and posted with notes, formula sheets, and practice sets.",
-    ],
-    [
-      "Exams that feel real",
-      "Monthly timed mock tests under board/exam conditions, with comprehensive score breakdowns.",
-    ],
-  ];
+  const { dict } = useI18n();
+  const stats = dict.why.stats;
+  const items = dict.why.items;
+
   return (
     <section id="why">
       <div className="wrap">
         <div className="stats">
-          {[
-            [12000, "+", "Active learners"],
-            [85, "", "Expert mentors"],
-            [40, "", "Districts reached"],
-            [96, "%", "Finish their course"],
-          ].map(([n, s, l]) => (
+          {stats.map(([n, s, l]) => (
             <div key={l}>
               <b>
                 <Count to={n} suffix={s} />
@@ -1832,7 +1336,7 @@ function Why() {
           ))}
         </div>
         <div style={{ marginTop: 110 }}>
-          <h2 className="h2">What you get when you join</h2>
+          <h2 className="h2">{dict.why.h2}</h2>
           <div className="why">
             {items.map(([h, t], i) => (
               <motion.div
@@ -1855,19 +1359,22 @@ function Why() {
 }
 
 function Voices() {
+  const { dict } = useI18n();
+  const voices = dict.voices.testimonials;
+
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     if (paused) return;
-    const t = setInterval(() => setI((x) => (x + 1) % VOICES.length), 6000);
+    const t = setInterval(() => setI((x) => (x + 1) % voices.length), 6000);
     return () => clearInterval(t);
-  }, [paused]);
+  }, [paused, voices.length]);
 
-  const prev = () => setI((x) => (x - 1 + VOICES.length) % VOICES.length);
-  const next = () => setI((x) => (x + 1) % VOICES.length);
+  const prev = () => setI((x) => (x - 1 + voices.length) % voices.length);
+  const next = () => setI((x) => (x + 1) % voices.length);
 
-  const [q, n, r, img] = VOICES[i];
+  const [q, n, r, img] = voices[i] || voices[0];
   return (
     <section id="voices" className="tst">
       <div
@@ -1875,7 +1382,7 @@ function Voices() {
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
-        <h2 className="h2">Students say it better</h2>
+        <h2 className="h2">{dict.voices.h2}</h2>
         <AnimatePresence mode="wait">
           <motion.div
             key={i}
@@ -1896,7 +1403,7 @@ function Voices() {
         </AnimatePresence>
         <div className="tcard-ctrls">
           <div className="student-pills">
-            {VOICES.map(([_, name], k) => (
+            {voices.map(([_, name], k) => (
               <button
                 key={k}
                 className={`student-pill ${k === i ? "active" : ""}`}
@@ -1910,14 +1417,14 @@ function Voices() {
             <button
               className="arrow-btn"
               onClick={prev}
-              aria-label="Previous review"
+              aria-label={dict.voices.prevAria}
             >
               ‹
             </button>
             <button
               className="arrow-btn"
               onClick={next}
-              aria-label="Next review"
+              aria-label={dict.voices.nextAria}
             >
               ›
             </button>
@@ -1929,6 +1436,7 @@ function Voices() {
 }
 
 function Faq() {
+  const { dict } = useI18n();
   const [openIdx, setOpenIdx] = useState(0);
 
   const toggle = (idx) => {
@@ -1942,16 +1450,15 @@ function Faq() {
           style={{ textAlign: "center", maxWidth: "650px", margin: "0 auto" }}
         >
           <h2 className="h2" style={{ margin: "0 auto" }}>
-            Frequently asked questions
+            {dict.faq.h2}
           </h2>
           <p className="lead" style={{ margin: "14px auto 0" }}>
-            Got questions before enrolling? Here is everything you need to know
-            about our batches, mentors, and policies.
+            {dict.faq.lead}
           </p>
         </div>
 
         <div className="faq-list">
-          {FAQS.map((faq, idx) => {
+          {dict.faq.items.map((faq, idx) => {
             const isOpen = openIdx === idx;
             return (
               <div key={idx} className={`faq-item ${isOpen ? "open" : ""}`}>
@@ -1986,6 +1493,9 @@ function Faq() {
 }
 
 function Join({ enrolledCourse }) {
+  const { dict, lang } = useI18n();
+  const courseList = COURSES[lang] || COURSES.bn;
+
   const ref = useRef(null);
   const { scrollYProgress: p } = useScroll({
     target: ref,
@@ -1997,14 +1507,16 @@ function Join({ enrolledCourse }) {
     name: "",
     email: "",
     phone: "",
-    course: enrolledCourse || COURSES[0].t,
+    course: enrolledCourse || courseList[0]?.t || "",
   });
 
   useEffect(() => {
     if (enrolledCourse) {
       setFormData((prev) => ({ ...prev, course: enrolledCourse }));
+    } else if (!formData.course && courseList[0]) {
+      setFormData((prev) => ({ ...prev, course: courseList[0].t }));
     }
-  }, [enrolledCourse]);
+  }, [enrolledCourse, courseList]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -2018,12 +1530,9 @@ function Join({ enrolledCourse }) {
       </motion.div>
       <div className="wrap" style={{ padding: "100px 0" }}>
         <h2 className="h2" style={{ maxWidth: "16ch" }}>
-          Your next batch starts this week
+          {dict.join.h2}
         </h2>
-        <p className="lead">
-          Reserve your seat now. A dedicated academic counsellor will connect
-          with you to complete your batch onboarding.
-        </p>
+        <p className="lead">{dict.join.lead}</p>
 
         {sent ? (
           <motion.div
@@ -2032,15 +1541,16 @@ function Join({ enrolledCourse }) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 280, damping: 22 }}
           >
-            <h3>🎉 Enrolment Request Received!</h3>
+            <h3>{dict.join.successTitle}</h3>
             <p style={{ fontSize: "1.1rem" }}>
-              Thank you <b>{formData.name}</b>! We have reserved a provisional
-              seat for <b>{formData.course}</b>.
+              {dict.join.successReserved
+                .replace("{name}", formData.name)
+                .replace("{course}", formData.course)}
             </p>
             <p style={{ opacity: 0.85, fontSize: "0.95rem" }}>
-              Our academic counsellor will reach out via WhatsApp/Phone at{" "}
-              <b>{formData.phone}</b> and send batch details to{" "}
-              <b>{formData.email}</b> within 24 hours.
+              {dict.join.successContact
+                .replace("{phone}", formData.phone)
+                .replace("{email}", formData.email)}
             </p>
             <button
               className="btn"
@@ -2053,7 +1563,7 @@ function Join({ enrolledCourse }) {
                 padding: "10px 22px",
               }}
             >
-              Enrol in another course
+              {dict.join.enrolAnother}
             </button>
           </motion.div>
         ) : (
@@ -2062,36 +1572,36 @@ function Join({ enrolledCourse }) {
               <input
                 type="text"
                 required
-                placeholder="Full name"
+                placeholder={dict.join.namePlaceholder}
                 value={formData.name}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                aria-label="Full name"
+                aria-label={dict.join.nameAria}
               />
             </div>
             <div>
               <input
                 type="tel"
                 required
-                placeholder="Mobile / WhatsApp (+880)"
+                placeholder={dict.join.phonePlaceholder}
                 value={formData.phone}
                 onChange={(e) =>
                   setFormData({ ...formData, phone: e.target.value })
                 }
-                aria-label="Phone number"
+                aria-label={dict.join.phoneAria}
               />
             </div>
             <div className="full">
               <input
                 type="email"
                 required
-                placeholder="Your email address"
+                placeholder={dict.join.emailPlaceholder}
                 value={formData.email}
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
-                aria-label="Email"
+                aria-label={dict.join.emailAria}
               />
             </div>
             <div className="full">
@@ -2101,10 +1611,10 @@ function Join({ enrolledCourse }) {
                 onChange={(e) =>
                   setFormData({ ...formData, course: e.target.value })
                 }
-                aria-label="Select course"
+                aria-label={dict.join.selectCourseAria}
               >
-                {COURSES.map((c) => (
-                  <option key={c.t} value={c.t} style={{ color: "var(--ink)" }}>
+                {courseList.map((c) => (
+                  <option key={c.id} value={c.t} style={{ color: "var(--ink)" }}>
                     {c.t} — {c.p} ({c.d})
                   </option>
                 ))}
@@ -2116,7 +1626,7 @@ function Join({ enrolledCourse }) {
                 type="submit"
                 style={{ padding: "16px 36px", fontSize: "1.05rem" }}
               >
-                Confirm Seat Reservation →
+                {dict.join.submitBtn}
               </button>
             </div>
           </form>
@@ -2127,7 +1637,7 @@ function Join({ enrolledCourse }) {
 }
 
 function FloatingCallButton() {
-  const [hovered, setHovered] = useState(false);
+  const { dict } = useI18n();
 
   return (
     <motion.div
@@ -2135,15 +1645,13 @@ function FloatingCallButton() {
       initial={{ opacity: 0, scale: 0.8, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ delay: 0.8, duration: 0.4 }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       <a
         href={WHATSAPP_URL}
         target="_blank"
         rel="noopener noreferrer"
         className="floating-call-btn"
-        aria-label="Open WhatsApp inbox"
+        aria-label={dict.floatingCall.ariaLabel}
       >
         <span className="call-pulse-ring" />
         <span className="call-icon">
@@ -2151,30 +1659,35 @@ function FloatingCallButton() {
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.889-9.888 9.889m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
           </svg>
         </span>
-        <span className="call-text">Call now</span>
+        <span className="call-text">{dict.floatingCall.callNow}</span>
       </a>
     </motion.div>
   );
 }
 
 function Footer() {
+  const { dict, toBn } = useI18n();
+
   return (
     <footer>
       <div className="wrap fg">
         <div>
-          <b style={{ fontSize: "1.5rem" }}>Onushilon Academy</b>
-          <span style={{ opacity: 0.7 }}>Learn by practice.</span>
+          <b style={{ fontSize: "1.5rem" }}>{dict.footer.brand}</b>
+          <span style={{ opacity: 0.7 }}>{dict.footer.tagline}</span>
+          <div style={{ marginTop: "12px" }}>
+            <LanguageSwitcher />
+          </div>
         </div>
         <div>
-          <b>Explore</b>
-          {NAV.slice(1, -1).map(([id, l]) => (
+          <b>{dict.footer.explore}</b>
+          {dict.nav.slice(1, -1).map(([id, l]) => (
             <a key={id} href={`#${id}`}>
               {l}
             </a>
           ))}
         </div>
         <div>
-          <b>Contact</b>
+          <b>{dict.footer.contact}</b>
           <a
             href={WHATSAPP_URL}
             target="_blank"
@@ -2187,18 +1700,21 @@ function Footer() {
               gap: "6px",
             }}
           >
-            💬 WhatsApp: {PHONE} (9 AM – 10 PM)
+            {dict.footer.whatsapp.replace("{phone}", PHONE)}
           </a>
-          <span>hello@onushilon.example</span>
-          <span>Dhaka, Bangladesh</span>
+          <span>{dict.footer.email}</span>
+          <span>{dict.footer.location}</span>
         </div>
       </div>
       <div className="wrap footer-bottom">
         <p>
-          © {new Date().getFullYear()} Onushilon Academy. All rights reserved.
+          {dict.footer.copyright.replace(
+            "{year}",
+            toBn(new Date().getFullYear())
+          )}
         </p>
         <p className="footer-credit">
-          Developed by{" "}
+          {dict.footer.developedBy}{" "}
           <a
             href="https://corpusian.com/"
             target="_blank"
@@ -2213,7 +1729,7 @@ function Footer() {
   );
 }
 
-export default function Page() {
+function PageContent() {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [enrolledCourse, setEnrolledCourse] = useState("");
   const [lightbox, setLightbox] = useState({ index: null, items: [] });
@@ -2292,5 +1808,13 @@ export default function Page() {
       />
       <FloatingCallButton />
     </main>
+  );
+}
+
+export default function Page() {
+  return (
+    <LanguageProvider initialLang="bn">
+      <PageContent />
+    </LanguageProvider>
   );
 }
