@@ -4,12 +4,13 @@ import {
   motion, AnimatePresence, useScroll, useTransform, useSpring,
   useMotionValue, useInView, animate, useReducedMotion,
 } from "framer-motion";
-import { IMG, LOGO, PHONE, PHONE_HREF, WHATSAPP_URL } from "../lib/assets";
+import { IMG, LOGO, PHONE, PHONE_HREF, WHATSAPP_URL, HERO_CARD_STREAMS, ALL_PHOTOS } from "../lib/assets";
 
 const NAV = [
   ["home", "Home"],
   ["story", "Our story"],
   ["courses", "Courses"],
+  ["mentors", "Mentors"],
   ["practice", "Practice"],
   ["moments", "Class moments"],
   ["why", "Why us"],
@@ -19,6 +20,32 @@ const NAV = [
 ];
 
 const COURSES = [
+  {
+    id: "robotic",
+    t: "Robotics & STEM Automation",
+    c: "Robotics & Tech",
+    d: "4 months",
+    l: "Hands-on Lab",
+    p: "৳5,500",
+    i: "c4",
+    mentor: "Engr. Nayeem Siddique (Robotics Specialist)",
+    schedule: "Fri & Sat • 4:00 PM",
+    seats: "6 seats left",
+    topics: ["Microcontroller Architecture & Arduino", "Sensor Integration & Motor Drivers", "Autonomous Line & Maze Following Bots", "Final Exhibition Hardware Capstone"],
+  },
+  {
+    id: "art",
+    t: "Creative Arts & Painting Studio",
+    c: "Arts & Sports",
+    d: "3 months",
+    l: "Studio sessions",
+    p: "৳3,600",
+    i: "c5",
+    mentor: "Shabnam Mustari (Fine Arts Master)",
+    schedule: "Sun & Wed • 4:30 PM",
+    seats: "8 seats left",
+    topics: ["Graphite Shading & Perspective Rules", "Acrylic & Watercolor Color Theory", "Composition & Landscape Painting", "Annual Academy Exhibition Showcase"],
+  },
   {
     id: "hsc",
     t: "HSC Physics & Chemistry",
@@ -33,21 +60,8 @@ const COURSES = [
     topics: ["Kinematics & Dynamics", "Electricity & Magnetism", "Organic Chemistry Mechanisms", "Weekly CQ & MCQ Mock Tests"],
   },
   {
-    id: "spoken",
-    t: "Spoken English",
-    c: "Language",
-    d: "3 months",
-    l: "Live classes",
-    p: "৳2,800",
-    i: "c2",
-    mentor: "Farhana Kabir (IELTS 8.5)",
-    schedule: "Mon & Wed • 7:30 PM",
-    seats: "8 seats left",
-    topics: ["Phonics & Accent Reduction", "Everyday Conversation Fluency", "Public Speaking Mastery", "1-on-1 Speaking Drill Breakouts"],
-  },
-  {
     id: "webdev",
-    t: "Web Development Basics",
+    t: "Web Development & Coding Basics",
     c: "Skills",
     d: "4 months",
     l: "Project based",
@@ -59,78 +73,301 @@ const COURSES = [
     topics: ["HTML5 & Modern Flex/Grid", "JavaScript ES6+ & DOM Logic", "React & Interactive UI Components", "Building 5 Real Portfolio Projects"],
   },
   {
+    id: "karate",
+    t: "Karate & Self Defense Academy",
+    c: "Arts & Sports",
+    d: "6 months",
+    l: "Dojo sessions",
+    p: "৳3,200",
+    i: "c7",
+    mentor: "Sensei Mahmudul Hasan (Black Belt 3rd Dan)",
+    schedule: "Sat & Mon • 7:00 AM",
+    seats: "10 seats left",
+    topics: ["Kihon (Stances, Punches & Blocks)", "Kata Forms & Mindful Breathing", "Kumite Self-Defense Techniques", "Official Belt Rank Grading Exams"],
+  },
+  {
+    id: "spoken",
+    t: "Spoken English & Fluency",
+    c: "Language",
+    d: "3 months",
+    l: "Live classes",
+    p: "৳2,800",
+    i: "c2",
+    mentor: "Farhana Kabir (IELTS 8.5)",
+    schedule: "Mon & Wed • 7:30 PM",
+    seats: "8 seats left",
+    topics: ["Phonics & Accent Reduction", "Everyday Conversation Fluency", "Public Speaking Mastery", "1-on-1 Speaking Drill Breakouts"],
+  },
+  {
+    id: "hardware",
+    t: "Hardware, Circuits & Repair",
+    c: "Robotics & Tech",
+    d: "3 months",
+    l: "Lab workshop",
+    p: "৳4,800",
+    i: "c6",
+    mentor: "Mehedi Hasan (Electronics Lead)",
+    schedule: "Tue & Thu • 5:00 PM",
+    seats: "7 seats left",
+    topics: ["Multimeter & Circuit Diagnostics", "PC Assembly & Component Troubleshooting", "Soldering & Power Supply Testing", "Real Device Maintenance Drills"],
+  },
+  {
+    id: "green",
+    t: "Grow With Green: Nature & STEM",
+    c: "Academic",
+    d: "2 months",
+    l: "Outdoor & Lab",
+    p: "৳2,500",
+    i: "c8",
+    mentor: "Dr. Farzana Yasmin (Agricultural Scientist)",
+    schedule: "Fri morning • 9:00 AM",
+    seats: "12 seats left",
+    topics: ["Botany & Photosynthesis Experiments", "Soil Chemistry & Composting Labs", "Urban Hydroponics & Gardening", "Ecosystem Preservation Projects"],
+  },
+  {
     id: "ssc",
-    t: "SSC Mathematics",
+    t: "SSC Higher Mathematics",
     c: "Academic",
     d: "5 months",
     l: "Live + recorded",
     p: "৳3,800",
-    i: "c4",
+    i: "c9",
     mentor: "Shafiqul Islam (DU Applied Math)",
     schedule: "Sat, Mon & Wed • 6:30 PM",
     seats: "12 seats left",
     topics: ["Algebra, Sets & Functions", "Trigonometric Identities & Heights", "Geometry Proofs with Shortcuts", "10 Years Past Board Paper Drills"],
   },
+];
+
+const MENTORS = [
   {
-    id: "ielts",
-    t: "IELTS Preparation",
-    c: "Language",
-    d: "2 months",
-    l: "Mock tests",
-    p: "৳5,200",
-    i: "c5",
-    mentor: "Nadia Zaman (British Council Certified)",
-    schedule: "Tue, Thu & Sat • 8:30 PM",
-    seats: "5 seats left",
-    topics: ["Listening Section Speed Tactics", "Reading Skimming & Scanning Hacks", "Writing Task 1 & 2 Personalized Reviews", "Live 1-on-1 Speaking Mock Evaluations"],
+    id: "m_robotic",
+    name: "Engr. Nayeem Siddique",
+    role: "Robotics & STEM Lead",
+    edu: "Mechatronics Engineer (BUET)",
+    dept: "Robotics & Tech",
+    badge: "🤖",
+    badgeFull: "Robotics Lab",
+    img: "/images/photos/robotic_class1.jpg",
+    course: "Robotics & STEM Automation",
+    stats: "6+ Yrs • 1,200+ Students",
+    bio: "Passionate about empowering young innovators to design circuits, write clean microcontroller code, and construct functional autonomous bots from scratch.",
   },
   {
-    id: "design",
-    t: "Graphic Design",
-    c: "Skills",
-    d: "3 months",
-    l: "Studio sessions",
-    p: "৳4,900",
-    i: "c6",
-    mentor: "Kamrul Hasan (Art Director)",
-    schedule: "Sun & Wed • 9:00 PM",
-    seats: "9 seats left",
-    topics: ["Design Principles & Typography", "Adobe Illustrator Vector Mastery", "Photoshop Retouching & Mockups", "Real Client Freelance Studio Simulation"],
+    id: "m_art",
+    name: "Shabnam Mustari",
+    role: "Master Fine Arts Mentor",
+    edu: "Faculty of Fine Arts (DU)",
+    dept: "Creative Arts",
+    badge: "🎨",
+    badgeFull: "Fine Arts",
+    img: "/images/photos/art_class1.jpg",
+    course: "Creative Arts & Painting Studio",
+    stats: "8+ Yrs • 950+ Artists",
+    bio: "Technique is learned through patient brushwork; vision is unlocked when mentors encourage freedom of expression.",
+  },
+  {
+    id: "m_physics",
+    name: "Engr. Tanvir Ahmed",
+    role: "Physics & Chemistry Lead",
+    edu: "B.Sc. Engineering (BUET)",
+    dept: "Academic & Science",
+    badge: "🔬",
+    badgeFull: "Science Lab",
+    img: "/images/photos/classroom1.jpg",
+    course: "HSC Physics & Chemistry",
+    stats: "9+ Yrs • 3,400+ Achievers",
+    bio: "No memorizing formulas without visualizing the motion. Solve the physical logic first, and the numbers follow naturally.",
+  },
+  {
+    id: "m_webdev",
+    name: "Arif Hossain",
+    role: "Web & Software Lead",
+    edu: "Senior Frontend Developer",
+    dept: "Robotics & Tech",
+    badge: "💻",
+    badgeFull: "Coding Lab",
+    img: "/images/photos/computer_learning.jpg",
+    course: "Web Development & Coding Basics",
+    stats: "7+ Yrs • 1,500+ Devs Trained",
+    bio: "You only learn code by writing bugs and fixing them live. We build real, deployable portfolio projects in every single sprint.",
+  },
+  {
+    id: "m_karate",
+    name: "Sensei Mahmudul Hasan",
+    role: "Chief Martial Arts Sensei",
+    edu: "Black Belt 3rd Dan Medalist",
+    dept: "Arts & Sports",
+    badge: "🥋",
+    badgeFull: "Karate Dojo",
+    img: "/images/photos/karate_class1.jpg",
+    course: "Karate & Self Defense Academy",
+    stats: "10+ Yrs • 800+ Belts Graded",
+    bio: "True karate is not about fighting; it builds unwavering focus, mental discipline, humility, and everyday courage.",
+  },
+  {
+    id: "m_spoken",
+    name: "Farhana Kabir",
+    role: "Spoken English Coach",
+    edu: "IELTS 8.5 • British Council",
+    dept: "Language & Skills",
+    badge: "🗣️",
+    badgeFull: "Spoken Fluency",
+    img: "/images/photos/learn_with_fun.jpg",
+    course: "Spoken English & Fluency",
+    stats: "5+ Yrs • 2,100+ Speakers",
+    bio: "Fluency is a habit, not an exam. Our interactive drills break hesitation from day one and give students real stage confidence.",
+  },
+  {
+    id: "m_hardware",
+    name: "Mehedi Hasan",
+    role: "Hardware & Electronics Lead",
+    edu: "Electronics Lab Director",
+    dept: "Robotics & Tech",
+    badge: "⚡",
+    badgeFull: "Hardware Lab",
+    img: "/images/photos/harware_fix_learning.jpg",
+    course: "Hardware, Circuits & Repair",
+    stats: "6+ Yrs • 900+ Lab Grads",
+    bio: "Understanding how motherboards, power supplies, and traces work demystifies technology and sparks genuine engineering curiosity.",
+  },
+  {
+    id: "m_math",
+    name: "Shafiqul Islam",
+    role: "Higher Mathematics Lead",
+    edu: "M.Sc. Applied Math (DU)",
+    dept: "Academic & Science",
+    badge: "📐",
+    badgeFull: "Math Session",
+    img: "/images/photos/classroom3.jpg",
+    course: "SSC Higher Mathematics",
+    stats: "8+ Yrs • 2,800+ Achievers",
+    bio: "Mathematics becomes joyous when you see the shortcut and the algebraic proof working together in harmony.",
+  },
+  {
+    id: "m_agri",
+    name: "Dr. Farzana Yasmin",
+    role: "Green Science & Biology",
+    edu: "Ph.D. Agricultural Science",
+    dept: "Academic & Science",
+    badge: "🌱",
+    badgeFull: "Green Science",
+    img: "/images/photos/grow_with_green.jpg",
+    course: "Young Green Innovators",
+    stats: "7+ Yrs • 650+ Researchers",
+    bio: "Nurturing ecological awareness through hands-on botanical experiments and scientific discovery creates responsible scientists.",
+  },
+  {
+    id: "m_iot",
+    name: "Sadman Al-Amin",
+    role: "IoT & Automation Coach",
+    edu: "B.Sc. CSE • Embedded Systems",
+    dept: "Robotics & Tech",
+    badge: "⚙️",
+    badgeFull: "IoT Automation",
+    img: "/images/photos/robotic_class3.jpg",
+    course: "Robotics & STEM Automation",
+    stats: "5+ Yrs • 780+ Builders",
+    bio: "Connecting physical hardware to intelligent cloud dashboards gives students the superpower of building real-world smart devices.",
   },
 ];
 
 const MOMENTS = [
   {
     id: "m1",
-    t: "Live Data Structures & Logic Studio",
-    c: "Live Classes",
-    tag: "Computer Science & Logic",
+    t: "Sensor Programming & Mechanics",
+    c: "Robotics & STEM",
+    tag: "Robotics Lab",
     img: "m1",
-    desc: "Mentor guiding university students through recursive tree traversal algorithms on the studio whiteboard.",
+    desc: "Learners calibrating infrared sensors and programming motor drivers on autonomous obstacle-avoiding chassis.",
   },
   {
     id: "m2",
-    t: "Peer Collaboration & Pair Programming",
-    c: "Peer Collaboration",
-    tag: "Web Dev & UI Design",
+    t: "Fine Art Shading & Perspective Workshop",
+    c: "Creative Arts",
+    tag: "Art Studio",
     img: "m2",
-    desc: "Students debugging React component state and testing API endpoints together during our weekly practice sprint.",
+    desc: "Students mastering light, shadow, and tonal gradations using graphite and charcoal under guidance.",
   },
   {
     id: "m3",
-    t: "Dedicated 1-on-1 Concept Clarification",
-    c: "1-on-1 Mentorship",
-    tag: "Academic Foundation",
+    t: "Interactive Science & Physics Classroom",
+    c: "Academic",
+    tag: "Smart Classroom",
     img: "m3",
-    desc: "Every learner receives personalized step-by-step attention to ensure every equation and principle is understood.",
+    desc: "Step-by-step problem breakdown on kinematics and vector mechanics with live student participation.",
   },
   {
     id: "m4",
-    t: "Batch Graduation & Milestone Celebration",
-    c: "Celebrations",
-    tag: "Certified Completion",
+    t: "Martial Arts Dojo & Physical Discipline",
+    c: "Active & Sports",
+    tag: "Karate Dojo",
     img: "m4",
-    desc: "Celebrating our proud graduates who completed their daily practice sets and verified portfolio capstones.",
+    desc: "Instilling focus, agility, self-defense discipline, and posture alignment in our weekly karate class.",
+  },
+  {
+    id: "m5",
+    t: "Digital Literacy & Computer Basics Lab",
+    c: "Tech & Coding",
+    tag: "Computer Lab",
+    img: "m5",
+    desc: "Hands-on software exploration, keyboard mastery, and coding fundamentals in our dedicated workstation lab.",
+  },
+  {
+    id: "m6",
+    t: "Hardware Diagnostics & Circuit Assembly",
+    c: "Tech & Coding",
+    tag: "Hardware Lab",
+    img: "m6",
+    desc: "Testing motherboard continuity, breadboard circuits, and diagnosing power supply issues safely.",
+  },
+  {
+    id: "m7",
+    t: "Grow With Green Outdoor Science Discovery",
+    c: "Academic",
+    tag: "Nature & Botany",
+    img: "m7",
+    desc: "Hands-on environmental botany where young students learn plant life cycles, soil ecosystems, and sustainability.",
+  },
+  {
+    id: "m8",
+    t: "Championship Bot Chassis Assembling",
+    c: "Robotics & STEM",
+    tag: "Robotics Lab",
+    img: "m8",
+    desc: "Constructing custom gear assemblies and aluminum frames for regional STEM robotics exhibitions.",
+  },
+  {
+    id: "m9",
+    t: "Color Theory & Creative Painting",
+    c: "Creative Arts",
+    tag: "Art Studio",
+    img: "m9",
+    desc: "Young artists blending primary and complementary hues to produce imaginative canvas paintings.",
+  },
+  {
+    id: "m10",
+    t: "Capstone Project Peer Collaboration",
+    c: "Robotics & Tech",
+    tag: "Project Lab",
+    img: "m10",
+    desc: "Students combining coding, hardware, and design to build full working prototypes together.",
+  },
+  {
+    id: "m11",
+    t: "Interactive Team Logic & Fun Challenges",
+    c: "Academic",
+    tag: "Fun & Learning",
+    img: "m11",
+    desc: "Engaging classroom games and collaborative quizzes that make complex concepts unforgettable.",
+  },
+  {
+    id: "m12",
+    t: "STEM Robotics Starter Workshop",
+    c: "Robotics & STEM",
+    tag: "Robotics Lab",
+    img: "m12",
+    desc: "Beginning robotics students discovering gear ratios, pulley dynamics, and foundational circuits.",
   },
 ];
 
@@ -205,9 +442,10 @@ const STORY = [
 ];
 
 const VOICES = [
-  ["Practice every day finally made physics click for me. My mentor checked my work, not just my answers.", "Nusrat Jahan", "HSC 2025, Dhaka", "t1"],
-  ["I joined from Rangpur with weak English. Six months later I spoke at my college seminar with full confidence.", "Rafiul Islam", "Spoken English graduate", "t2"],
-  ["The project classes gave me a real portfolio. I landed my first freelance frontend contract before the course even ended.", "Tasnim Akter", "Web Development graduate", "t3"],
+  ["The art mentors here don't just teach techniques; they helped me discover my own painting style. Seeing my artwork on exhibition was a dream come true!", "Tasnim Akter", "Creative Arts & Design graduate", "t1"],
+  ["Building and programming an autonomous robot with my own hands was unforgettable. The robotics lab mentors guided us through every sensor and circuit.", "Sadman Sakib", "Robotics & STEM batch 2024", "t2"],
+  ["Practice every single day finally made physics equations click for me. My mentor reviewed every step of my solution, not just the final number.", "Nusrat Jahan", "HSC Science achiever, Dhaka", "t3"],
+  ["I was terrified of speaking English in public. The interactive fun sessions and 1-on-1 speaking drills completely transformed my fluency and confidence.", "Rafiul Islam", "Spoken English graduate", "t4"],
 ];
 
 /* Image with a coloured placeholder until a file path is set in lib/assets.js */
@@ -298,7 +536,7 @@ function Nav() {
               {LOGO ? <img src={LOGO} alt="Onushilon" /> : <><i>অ</i>Onushilon</>}
             </a>
             <div className="links">
-              {NAV.slice(1, 8).map(([id, l]) => (
+              {NAV.slice(1, -1).map(([id, l]) => (
                 <a key={id} href={`#${id}`} className={active === id ? "on" : ""}>{l}</a>
               ))}
               <a href="#join" className="btn" style={{ padding: "10px 22px" }}>Enrol now</a>
@@ -368,7 +606,90 @@ function Nav() {
   );
 }
 
-function Hero() {
+function RisingHeroBox({
+  stream,
+  className = "",
+  style = {},
+  interval = 8000,
+  initialDelay = 0,
+  parallaxY,
+  parallaxRotate,
+  onPhotoClick,
+}) {
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
+
+  useEffect(() => {
+    let timer;
+    const timeout = setTimeout(() => {
+      timer = setInterval(() => {
+        if (!pausedRef.current) {
+          setIndex((prev) => (prev + 1) % stream.length);
+        }
+      }, interval);
+    }, initialDelay);
+
+    return () => {
+      clearTimeout(timeout);
+      if (timer) clearInterval(timer);
+    };
+  }, [interval, initialDelay, stream.length]);
+
+  const current = stream[index % stream.length];
+
+  return (
+    <motion.div
+      className={`hero-box-anchor ${className}`}
+      style={{ y: parallaxY, rotate: parallaxRotate, ...style }}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={`${current.src}-${index}`}
+          className="hero-moving-box"
+          initial={{ y: 220, opacity: 0, scale: 0.94 }}
+          animate={{
+            y: [200, 0, -12],
+            opacity: [0, 1, 1],
+            scale: [0.94, 1, 1],
+            transition: {
+              y: { times: [0, 0.16, 1], duration: 7.0, ease: ["easeOut", "linear"] },
+              opacity: { times: [0, 0.14, 1], duration: 7.0, ease: "easeInOut" },
+              scale: { times: [0, 0.16, 1], duration: 7.0, ease: "easeOut" },
+            }
+          }}
+          exit={{
+            y: -220,
+            opacity: 0,
+            scale: 0.94,
+            transition: { duration: 0.9, ease: [0.22, 1, 0.36, 1] }
+          }}
+          onClick={() => onPhotoClick && onPhotoClick(current)}
+          title="Click to view full photo • Hover to pause"
+        >
+          <img
+            src={current.src}
+            alt={current.title}
+            className="hero-card-img"
+            loading="eager"
+          />
+          <div className="hero-card-overlay">
+            <span className="hero-badge">{current.badge}</span>
+          </div>
+          <span className="hero-card-pause-hint">⏸ Paused</span>
+        </motion.div>
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+function Hero({ onPhotoClick }) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
   const { scrollYProgress: p } = useScroll({ target: ref, offset: ["start start", "end start"] });
@@ -385,11 +706,52 @@ function Hero() {
     <section id="home" className="hero" ref={ref}>
       <div className="hero-in">
         <motion.div className="glow" style={{ y: y2 }} />
-        <motion.div className="float f1" style={{ y: y1, rotate: r1 }}><Pic k="hero1" alt="Students in class" style={{ height: "100%", borderRadius: "inherit" }} /></motion.div>
-        <motion.div className="float f2" style={{ y: y2 }}><Pic k="hero2" cls="alt" style={{ height: "100%", borderRadius: "inherit" }} /></motion.div>
-        <motion.div className="float f3" style={{ y: y3 }}><Pic k="hero3" cls="alt2" style={{ height: "100%", borderRadius: "inherit" }} /></motion.div>
-        <motion.div className="float f4" style={{ y: y1 }}><Pic k="hero1" cls="alt" style={{ height: "100%", borderRadius: "inherit" }} /></motion.div>
+        
+        {/* The whole box comes from the bottom, rises up with fade, stays calmly, and hides at top */}
+        <RisingHeroBox
+          stream={HERO_CARD_STREAMS[0]}
+          className="f1"
+          parallaxY={y1}
+          parallaxRotate={r1}
+          interval={8000}
+          initialDelay={0}
+          onPhotoClick={onPhotoClick}
+        />
+        <RisingHeroBox
+          stream={HERO_CARD_STREAMS[1]}
+          className="f2"
+          parallaxY={y2}
+          interval={8000}
+          initialDelay={2000}
+          onPhotoClick={onPhotoClick}
+        />
+        <RisingHeroBox
+          stream={HERO_CARD_STREAMS[2]}
+          className="f3"
+          parallaxY={y3}
+          interval={8000}
+          initialDelay={4000}
+          onPhotoClick={onPhotoClick}
+        />
+        <RisingHeroBox
+          stream={HERO_CARD_STREAMS[3]}
+          className="f4"
+          parallaxY={y1}
+          interval={8000}
+          initialDelay={6000}
+          onPhotoClick={onPhotoClick}
+        />
+
         <motion.div style={{ y: ty, opacity: fade, position: "relative", zIndex: 3, padding: "0 4vw" }}>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.1 }}
+            style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(246,247,242,0.12)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.18)", padding: "6px 16px", borderRadius: "99px", marginBottom: "18px", fontSize: "0.88rem", fontWeight: 600, color: "var(--paper)" }}
+          >
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 10px #10b981", display: "inline-block" }} />
+            <span>20 Authentic Class & Lab Moments • Bangladesh</span>
+          </motion.div>
           <h1>
             {words.map((w, i) => (
               <span key={w}>
@@ -409,7 +771,7 @@ function Hero() {
           </motion.p>
           <motion.div className="cta" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.1 }}>
             <a className="btn" href="#courses">Browse courses</a>
-            <a className="btn ghost" href="#practice">Try practice demo</a>
+            <a className="btn ghost" href="#moments">Explore class moments</a>
             <a className="btn-call" href={PHONE_HREF} style={{ padding: "14px 22px", fontSize: "0.95rem" }}>📞 Call now</a>
           </motion.div>
         </motion.div>
@@ -461,7 +823,7 @@ function Story() {
 }
 
 function Courses({ onOpenModal, onEnrol }) {
-  const cats = ["All", "Academic", "Language", "Skills"];
+  const cats = ["All", "Robotics & Tech", "Arts & Sports", "Academic", "Language", "Skills"];
   const [cat, setCat] = useState("All");
   const [search, setSearch] = useState("");
 
@@ -607,6 +969,194 @@ function CourseModal({ course, onClose, onEnrol }) {
   );
 }
 
+function Mentors({ onEnrol }) {
+  const cats = ["All Mentors", "Robotics & Tech", "Creative Arts", "Academic & Science", "Arts & Sports", "Language & Skills"];
+  const [cat, setCat] = useState("All Mentors");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(5);
+
+  const list = cat === "All Mentors" ? MENTORS : MENTORS.filter((m) => m.dept === cat);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const w = window.innerWidth;
+      if (w < 480) setVisibleCount(1);
+      else if (w < 680) setVisibleCount(2);
+      else if (w < 960) setVisibleCount(3);
+      else if (w < 1200) setVisibleCount(4);
+      else setVisibleCount(5);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const total = list.length;
+  const maxIndex = Math.max(0, total - visibleCount);
+
+  const handleCatChange = (newCat) => {
+    setCat(newCat);
+    setCurrentIndex(0);
+  };
+
+  const handlePrev = () => {
+    setCurrentIndex((prev) => (prev <= 0 ? maxIndex : prev - 1));
+  };
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
+  };
+
+  const displayedEnd = Math.min(currentIndex + visibleCount, total);
+
+  return (
+    <section id="mentors" className="mentors-sec">
+      <div className="wrap">
+        <div className="mentors-header">
+          <div className="mentors-header-text">
+            <span className="mentors-kicker">Faculty & Mentorship</span>
+            <h2 className="h2">Learn from practicing mentors</h2>
+            <p className="lead" style={{ marginTop: "8px" }}>
+              Our faculty consists of practicing engineers, artists, university educators, and martial arts masters who review your work personally every single week.
+            </p>
+          </div>
+
+          <div className="mentors-ctrls-bar">
+            <div className="mentor-counter-pill">
+              <span className="mentor-counter-dot" />
+              <span>
+                {total > 0 ? `${currentIndex + 1}–${displayedEnd} of ${total} Mentors` : "0 Mentors"}
+              </span>
+            </div>
+            <div className="mentor-nav-arrows">
+              <button
+                type="button"
+                className="mentor-nav-btn"
+                onClick={handlePrev}
+                aria-label="Previous mentors"
+                title="Previous mentors"
+                disabled={total <= visibleCount}
+                style={{ opacity: total <= visibleCount ? 0.4 : 1, cursor: total <= visibleCount ? "default" : "pointer" }}
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                className="mentor-nav-btn"
+                onClick={handleNext}
+                aria-label="Next mentors"
+                title="Next mentors"
+                disabled={total <= visibleCount}
+                style={{ opacity: total <= visibleCount ? 0.4 : 1, cursor: total <= visibleCount ? "default" : "pointer" }}
+              >
+                ›
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="courses-top" style={{ marginBottom: "24px" }}>
+          <div className="tabs" role="tablist">
+            {cats.map((c) => (
+              <button
+                key={c}
+                role="tab"
+                aria-selected={cat === c}
+                className={`tab ${cat === c ? "on" : ""}`}
+                onClick={() => handleCatChange(c)}
+              >
+                {cat === c && (
+                  <motion.span
+                    layoutId="mentor-tab-pill"
+                    className="tab-pill"
+                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                  />
+                )}
+                <span className="tab-label">{c}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mentors-slider-outer">
+          <div className="mentors-slider-window">
+            <div
+              className="mentors-slider-track"
+              style={{
+                transform: `translateX(-${(currentIndex * 100) / visibleCount}%)`,
+              }}
+            >
+              {list.map((m) => (
+                <div
+                  key={m.id}
+                  className="mentor-line-cell"
+                  style={{
+                    flex: `0 0 ${100 / visibleCount}%`,
+                    maxWidth: `${100 / visibleCount}%`,
+                  }}
+                >
+                  <div className="mentor-line-item">
+                    <div className="mentor-circle-wrap">
+                      <div className="mentor-circle-inner">
+                        <img
+                          src={m.img}
+                          alt={m.name}
+                          className="mentor-circle-img"
+                          loading="lazy"
+                        />
+                      </div>
+                      <span className="mentor-circle-badge" title={m.badgeFull}>
+                        {m.badge}
+                      </span>
+                    </div>
+
+                    <h3 className="mentor-line-name" title={m.name}>
+                      {m.name}
+                    </h3>
+                    <p className="mentor-line-role" title={m.role}>
+                      {m.role}
+                    </p>
+                    <p className="mentor-line-edu" title={m.edu}>
+                      🎓 {m.edu}
+                    </p>
+                    <span className="mentor-line-stats">{m.stats}</span>
+
+                    <button
+                      type="button"
+                      className="mentor-line-btn"
+                      onClick={() => onEnrol && onEnrol(m.course)}
+                    >
+                      Enrol with Mentor →
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {Math.ceil(total / visibleCount) > 1 && (
+            <div className="mentor-dots-row">
+              {Array.from({ length: Math.ceil(total / visibleCount) }).map((_, p) => {
+                const isCurrentPage = Math.floor(currentIndex / visibleCount) === p;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    className={`mentor-dot-pill ${isCurrentPage ? "active" : ""}`}
+                    onClick={() => setCurrentIndex(Math.min(p * visibleCount, maxIndex))}
+                    aria-label={`Go to mentors page ${p + 1}`}
+                    title={`Page ${p + 1}`}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function PracticeArena() {
   const [activeTab, setActiveTab] = useState(0);
   const [selectedOpt, setSelectedOpt] = useState(null);
@@ -719,7 +1269,7 @@ function PracticeArena() {
 }
 
 function Moments({ onOpenLightbox }) {
-  const cats = ["All Moments", "Live Classes", "Peer Collaboration", "1-on-1 Mentorship", "Celebrations"];
+  const cats = ["All Moments", "Robotics & STEM", "Creative Arts", "Tech & Coding", "Active & Sports", "Academic"];
   const [cat, setCat] = useState("All Moments");
 
   const list = cat === "All Moments" ? MOMENTS : MOMENTS.filter((m) => m.c === cat);
@@ -730,7 +1280,7 @@ function Moments({ onOpenLightbox }) {
         <div style={{ maxWidth: "700px" }}>
           <h2 className="h2">Class moments & life at Onushilon</h2>
           <p className="lead">
-            Take an authentic look inside our interactive classrooms, peer coding labs, and celebration days across Bangladesh.
+            Take an authentic look inside our robotics labs, art workshops, coding studios, karate dojo, and science classrooms.
           </p>
         </div>
 
@@ -803,6 +1353,11 @@ function LightboxModal({ activeIndex, items, onClose, onNavigate }) {
     onNavigate((activeIndex + 1) % items.length);
   };
 
+  const imgSrc = current.src || (current.img && IMG[current.img]) || (current.k && IMG[current.k]);
+  const title = current.t || current.title || "Academy Moment";
+  const cat = current.c || current.tag || current.badge || "Onushilon Academy";
+  const desc = current.desc || current.title || "";
+
   return (
     <AnimatePresence>
       <motion.div
@@ -821,20 +1376,24 @@ function LightboxModal({ activeIndex, items, onClose, onNavigate }) {
         )}
         <motion.div
           className="lightbox-card"
-          initial={{ scale: 0.92, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.92, opacity: 0 }}
+          initial={{ scale: 0.92, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.92, opacity: 0, y: 20 }}
           transition={{ type: "spring", stiffness: 320, damping: 26 }}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="lightbox-img-wrap">
-            <Pic k={current.img} alt={current.t} style={{ height: "480px" }} />
+            {imgSrc ? (
+              <img src={imgSrc} alt={title} style={{ width: "100%", maxHeight: "550px", objectFit: "contain", display: "block" }} />
+            ) : (
+              <Pic k={current.img} alt={title} style={{ height: "480px" }} />
+            )}
           </div>
           <div className="lightbox-info">
             <div>
-              <span style={{ fontSize: "0.85rem", color: "var(--gold)", fontWeight: 700 }}>{current.c} • {current.tag}</span>
-              <h3 style={{ fontSize: "1.45rem", marginTop: 4 }}>{current.t}</h3>
-              <p style={{ opacity: 0.85, fontSize: "0.95rem", marginTop: 4 }}>{current.desc}</p>
+              <span style={{ fontSize: "0.85rem", color: "var(--gold)", fontWeight: 700 }}>{cat}</span>
+              <h3 style={{ fontSize: "1.45rem", marginTop: 4 }}>{title}</h3>
+              {desc && <p style={{ opacity: 0.85, fontSize: "0.95rem", marginTop: 4 }}>{desc}</p>}
             </div>
             <span style={{ opacity: 0.6, fontSize: "0.9rem" }}>{activeIndex + 1} of {items.length}</span>
           </div>
@@ -1132,7 +1691,7 @@ function Footer() {
     <footer>
       <div className="wrap fg">
         <div><b style={{ fontSize: "1.5rem" }}>Onushilon Academy</b><span style={{ opacity: 0.7 }}>Learn by practice.</span></div>
-        <div><b>Explore</b>{NAV.slice(1, 8).map(([id, l]) => <a key={id} href={`#${id}`}>{l}</a>)}</div>
+        <div><b>Explore</b>{NAV.slice(1, -1).map(([id, l]) => <a key={id} href={`#${id}`}>{l}</a>)}</div>
         <div>
           <b>Contact</b>
           <a
@@ -1189,16 +1748,22 @@ export default function Page() {
     document.getElementById("join")?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handlePhotoClickFromHero = (photo) => {
+    const idx = ALL_PHOTOS.findIndex((p) => p.src === photo.src);
+    setLightbox({ index: idx >= 0 ? idx : 0, items: ALL_PHOTOS });
+  };
+
   return (
     <main>
       <Nav />
-      <Hero />
+      <Hero onPhotoClick={handlePhotoClickFromHero} />
       <Marquee />
       <Story />
       <Courses
         onOpenModal={(course) => setSelectedCourse(course)}
         onEnrol={handleEnrolFromModal}
       />
+      <Mentors onEnrol={handleEnrolFromModal} />
       <PracticeArena />
       <Moments
         onOpenLightbox={(idx, items) => setLightbox({ index: idx, items })}
