@@ -566,7 +566,13 @@ function Courses({ onOpenModal, onEnrol }) {
           l: isBn && c.level_bn ? c.level_bn : c.level_en,
           p: c.price,
           discountPrice: c.discount_price,
-          i: c.image_url,
+          i: c.image_url
+            ? c.image_url.includes("?")
+              ? c.image_url
+              : c.updated_at
+                ? `${c.image_url}?v=${new Date(c.updated_at).getTime()}`
+                : `${c.image_url}?v=1`
+            : null,
           mentor: c.mentor_name,
           schedule: isBn && c.schedule_bn ? c.schedule_bn : c.schedule_en,
           seats: isBn && c.seats_bn ? c.seats_bn : c.seats_en,

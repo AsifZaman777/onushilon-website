@@ -158,8 +158,8 @@ section{padding:clamp(72px,11vw,150px) 0;position:relative}
 .cta-bg{position:absolute;inset:-12% 0}
 .cta-bg .ph{height:100%;opacity:.45}
 .cta-s .wrap{position:relative}
-form{display:flex;gap:10px;margin-top:30px;flex-wrap:wrap;max-width:560px}
-input{flex:1;min-width:220px;padding:16px 22px;border-radius:99px;border:2px solid transparent;font:inherit;background:var(--paper);color:var(--ink)}
+.cta-s form{display:flex;gap:10px;margin-top:30px;flex-wrap:wrap;max-width:560px}
+.cta-s input{flex:1;min-width:220px;padding:16px 22px;border-radius:99px;border:2px solid transparent;font:inherit;background:var(--paper);color:var(--ink)}
 .ok{margin-top:24px;font-size:1.3rem;color:var(--gold)}
 
 /* courses search & modal */

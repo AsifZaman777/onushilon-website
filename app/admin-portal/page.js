@@ -67,6 +67,7 @@ import {
   Pie,
 } from "recharts";
 import { API_BASE } from "../../lib/api";
+import { cacheBustUrl } from "../../lib/utils";
 import { Button } from "../../components/ui/button";
 import {
   Dialog,
@@ -140,6 +141,7 @@ export default function AdminPortalPage() {
   const [storageStatus, setStorageStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastSyncedTime, setLastSyncedTime] = useState(null);
 
   // Save Loading State
   const [savingKey, setSavingKey] = useState(null);
@@ -247,7 +249,7 @@ export default function AdminPortalPage() {
     }
   }, []);
 
-  // Centralized API Helper
+  // Centralized API Helper (Cache-Busting for instant reflection)
   const apiFetch = async (endpoint, options = {}, customToken = null) => {
     const authToken = customToken || token;
     const headers = { ...(options.headers || {}) };
@@ -258,7 +260,22 @@ export default function AdminPortalPage() {
       headers["Content-Type"] = "application/json";
     }
 
-    const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+    // Force no-store and anti-cache headers on every admin request
+    headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+    headers["Pragma"] = "no-cache";
+    headers["Expires"] = "0";
+
+    const isGet = !options.method || options.method.toUpperCase() === "GET";
+    const separator = endpoint.includes("?") ? "&" : "?";
+    const finalUrl = isGet
+      ? `${API_BASE}${endpoint}${separator}_t=${Date.now()}`
+      : `${API_BASE}${endpoint}`;
+
+    const res = await fetch(finalUrl, {
+      cache: "no-store",
+      ...options,
+      headers,
+    });
     if (res.status === 401) {
       setToken("");
       localStorage.removeItem("onushilon_admin_token");
@@ -272,22 +289,46 @@ export default function AdminPortalPage() {
     return data;
   };
 
-  // Fetch all live dashboard and CRM data from backend
-  const fetchDashboardData = async (activeToken) => {
-    setLoading(true);
+  // Fetch all live dashboard and CRM data directly from backend (instant live sync)
+  const fetchDashboardData = async (activeToken, targetTab = null) => {
+    const authToken = activeToken || token;
+    if (!authToken) return;
     try {
-      const [pubRes, leadsRes, healthRes, mediaRes] = await Promise.all([
-        apiFetch("/public/all", {}, activeToken),
-        apiFetch("/leads", {}, activeToken).catch(() => ({ data: [] })),
-        apiFetch("/health", {}, activeToken).catch(() => ({})),
-        apiFetch("/media", {}, activeToken).catch(() => ({ data: [] })),
+      const [
+        coursesRes,
+        sectionsRes,
+        settingsRes,
+        mentorsRes,
+        leadsRes,
+        healthRes,
+        mediaRes,
+      ] = await Promise.all([
+        apiFetch("/courses", {}, authToken).catch(() => null),
+        apiFetch("/sections", {}, authToken).catch(() => null),
+        apiFetch("/settings", {}, authToken).catch(() => null),
+        apiFetch("/mentors", {}, authToken).catch(() => null),
+        apiFetch("/leads", {}, authToken).catch(() => ({ data: [] })),
+        apiFetch("/health", {}, authToken).catch(() => ({})),
+        apiFetch("/media", {}, authToken).catch(() => ({ data: [] })),
       ]);
 
-      if (pubRes?.data) {
-        setSettings(pubRes.data.settings || {});
-        setCourses(pubRes.data.courses || []);
-        setSections(pubRes.data.sections || {});
-        setMentors(pubRes.data.mentors || []);
+      if (coursesRes?.data) {
+        setCourses(coursesRes.data);
+      }
+      if (sectionsRes?.data) {
+        const sectionsMap = Array.isArray(sectionsRes.data)
+          ? sectionsRes.data.reduce((acc, curr) => {
+              acc[curr.section_id] = curr;
+              return acc;
+            }, {})
+          : sectionsRes.data;
+        setSections(sectionsMap);
+      }
+      if (settingsRes?.data) {
+        setSettings(settingsRes.data);
+      }
+      if (mentorsRes?.data) {
+        setMentors(mentorsRes.data);
       }
       if (leadsRes?.data) {
         setLeads(leadsRes.data);
@@ -295,7 +336,31 @@ export default function AdminPortalPage() {
       if (mediaRes?.data) {
         setMedia(mediaRes.data);
       }
-      setStorageStatus(healthRes);
+      if (healthRes) {
+        setStorageStatus(healthRes);
+      }
+
+      // Robust fallback: if /courses or /sections failed, query /public/all
+      if (!coursesRes?.data || !sectionsRes?.data) {
+        const pubRes = await apiFetch("/public/all", {}, authToken).catch(
+          () => null,
+        );
+        if (pubRes?.data) {
+          if (!settingsRes?.data && pubRes.data.settings)
+            setSettings(pubRes.data.settings);
+          if (!coursesRes?.data && pubRes.data.courses)
+            setCourses(pubRes.data.courses);
+          if (!sectionsRes?.data && pubRes.data.sections)
+            setSections(pubRes.data.sections);
+          if (!mentorsRes?.data && pubRes.data.mentors)
+            setMentors(pubRes.data.mentors);
+        }
+      }
+
+      setLastSyncedTime(new Date());
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("onushilon_content_invalidated"));
+      }
     } catch (err) {
       console.warn("Could not load full dashboard data:", err.message);
     } finally {
@@ -304,12 +369,28 @@ export default function AdminPortalPage() {
     }
   };
 
-  const handleRefreshAll = () => {
-    if (!token) return;
+  const handleRefresh = async (tabName = null) => {
+    if (!token || refreshing) return;
     setRefreshing(true);
-    fetchDashboardData(token);
-    showToast("Syncing with live Supabase database...", "success");
+    await fetchDashboardData(token, tabName);
+
+    const labels = {
+      dashboard: "Dashboard analytics & KPIs synced with live database!",
+      courses: "Course catalog & pricing synced with live database!",
+      sections: "Landing page sections & copy synced with live database!",
+      contact: "WhatsApp & phone settings synced with live database!",
+      mentors: "Faculty mentors synced with live database!",
+      leads: "Student CRM leads & inquiries refreshed!",
+      media: "Supabase storage bucket explorer refreshed!",
+    };
+
+    const msg =
+      (tabName && labels[tabName]) ||
+      "All data refreshed instantly from Supabase database!";
+    showToast(msg, "success");
   };
+
+  const handleRefreshAll = () => handleRefresh(currentTab);
 
   // Authentication Handlers
   const handleLogin = async (e) => {
@@ -559,9 +640,10 @@ export default function AdminPortalPage() {
         body: formData,
       });
       if (res.data?.publicUrl) {
-        setCourseForm((prev) => ({ ...prev, image_url: res.data.publicUrl }));
-        showToast("Image uploaded to Supabase bucket successfully!", "success");
-        fetchDashboardData(token);
+        const cacheBusted = cacheBustUrl(res.data.publicUrl);
+        setCourseForm((prev) => ({ ...prev, image_url: cacheBusted }));
+        showToast("Image uploaded to Supabase & cache invalidated!", "success");
+        fetchDashboardData(token, "courses");
       }
     } catch (err) {
       showToast(err.message, "error");
@@ -757,9 +839,10 @@ export default function AdminPortalPage() {
         body: formData,
       });
       if (res.data?.publicUrl) {
-        setMentorForm((prev) => ({ ...prev, avatar_url: res.data.publicUrl }));
-        showToast("Mentor avatar uploaded to Supabase!", "success");
-        fetchDashboardData(token);
+        const cacheBusted = cacheBustUrl(res.data.publicUrl);
+        setMentorForm((prev) => ({ ...prev, avatar_url: cacheBusted }));
+        showToast("Mentor avatar uploaded & cache invalidated!", "success");
+        fetchDashboardData(token, "mentors");
       }
     } catch (err) {
       showToast(err.message, "error");
@@ -969,7 +1052,10 @@ export default function AdminPortalPage() {
 
     const formData = new FormData();
     formData.append("image", file);
-    formData.append("folder", "general");
+    formData.append(
+      "folder",
+      mediaFolderFilter !== "all" ? mediaFolderFilter : "general",
+    );
 
     setSavingKey("general-img");
     try {
@@ -978,13 +1064,125 @@ export default function AdminPortalPage() {
         body: formData,
       });
       if (res.data?.publicUrl) {
-        showToast("Uploaded to Supabase bucket 'onushilon'!", "success");
-        fetchDashboardData(token);
+        showToast(
+          "Uploaded to Supabase storage & cache invalidated!",
+          "success",
+        );
+        fetchDashboardData(token, "media");
       }
     } catch (err) {
       showToast(err.message, "error");
     } finally {
       setSavingKey(null);
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  // Delete media asset from Supabase storage and invalidate all caches
+  const handleDeleteMedia = (mediaItem) => {
+    setAlertDialog({
+      open: true,
+      title: `Delete Image: "${mediaItem.name}"?`,
+      description:
+        "This will permanently remove the image from Supabase cloud storage bucket and invalidate its cache across the website and admin panel.",
+      confirmText: "Delete from Storage",
+      isDestructive: true,
+      loading: false,
+      onConfirm: async () => {
+        setAlertDialog((prev) => ({ ...prev, loading: true }));
+        try {
+          const identifier = mediaItem.id || encodeURIComponent(mediaItem.name);
+          await apiFetch(`/media/${identifier}`, {
+            method: "DELETE",
+            body: JSON.stringify({
+              storagePath: mediaItem.storagePath || mediaItem.name,
+              publicUrl: mediaItem.publicUrl,
+            }),
+          });
+          setMedia((prev) =>
+            prev.filter((m) =>
+              m.id ? m.id !== mediaItem.id : m.name !== mediaItem.name,
+            ),
+          );
+          if (
+            previewMedia &&
+            (previewMedia.id === mediaItem.id ||
+              previewMedia.name === mediaItem.name)
+          ) {
+            setPreviewMedia(null);
+          }
+          showToast(
+            `Image "${mediaItem.name}" deleted and cache invalidated!`,
+            "success",
+          );
+          setAlertDialog((prev) => ({ ...prev, open: false }));
+          fetchDashboardData(token, "media");
+        } catch (err) {
+          showToast(err.message, "error");
+          setAlertDialog((prev) => ({ ...prev, loading: false }));
+        }
+      },
+    });
+  };
+
+  // Replace / edit an existing image in storage and invalidate caches
+  const handleReplaceMedia = async (mediaItem, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const folder =
+      mediaFolderFilter !== "all"
+        ? mediaFolderFilter
+        : (mediaItem.publicUrl || "").includes("/photos/")
+          ? "photos"
+          : (mediaItem.publicUrl || "").includes("/courses/")
+            ? "courses"
+            : (mediaItem.publicUrl || "").includes("/mentors/")
+              ? "mentors"
+              : "general";
+
+    const formData = new FormData();
+    formData.append("image", file);
+    formData.append("folder", folder);
+
+    setSavingKey(`replace-img-${mediaItem.name}`);
+    try {
+      // 1. Upload new image
+      const res = await apiFetch("/media/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      // 2. Delete old image from storage
+      if (res.data?.publicUrl) {
+        const identifier = mediaItem.id || encodeURIComponent(mediaItem.name);
+        await apiFetch(`/media/${identifier}`, {
+          method: "DELETE",
+          body: JSON.stringify({
+            storagePath: mediaItem.storagePath || mediaItem.name,
+            publicUrl: mediaItem.publicUrl,
+          }),
+        }).catch(() => {});
+
+        const cacheBusted = cacheBustUrl(res.data.publicUrl);
+        if (previewMedia) {
+          setPreviewMedia({
+            ...previewMedia,
+            name: file.name,
+            publicUrl: cacheBusted,
+          });
+        }
+        showToast(
+          "Image replaced and cache invalidated successfully!",
+          "success",
+        );
+        fetchDashboardData(token, "media");
+      }
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setSavingKey(null);
+      if (e.target) e.target.value = "";
     }
   };
 
@@ -1373,25 +1571,6 @@ export default function AdminPortalPage() {
         </nav>
 
         {/* Live Supabase Bucket Status Bar */}
-        <div className="p-4 border-t border-emerald-950/60 bg-[#050706]">
-          <div className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-950/40 border border-emerald-500/25 text-emerald-300">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#4ade80]" />
-              <span>Supabase Storage Live</span>
-            </div>
-            <button
-              onClick={handleRefreshAll}
-              disabled={refreshing}
-              title="Sync with database"
-              className="text-zinc-400 hover:text-emerald-300 transition-colors"
-            >
-              <RefreshCw
-                size={13}
-                className={refreshing ? "animate-spin text-emerald-400" : ""}
-              />
-            </button>
-          </div>
-        </div>
       </aside>
 
       {/* MAIN VIEWPORT */}
@@ -1423,6 +1602,28 @@ export default function AdminPortalPage() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleRefresh(currentTab)}
+              disabled={refreshing}
+              title="Instantly refresh all data from live Supabase database (bypasses cache)"
+              className="px-3 py-1.5 rounded-xl border-emerald-500/30 bg-emerald-950/30 hover:bg-emerald-500/10 text-emerald-300 hover:text-emerald-200 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+            >
+              <RefreshCw
+                size={13}
+                className={
+                  refreshing
+                    ? "animate-spin text-emerald-400"
+                    : "text-emerald-400"
+                }
+              />
+              <span className="hidden sm:inline">
+                {refreshing ? "Syncing..." : "Sync Live Data"}
+              </span>
+              <span className="sm:hidden">{refreshing ? "..." : "Sync"}</span>
+            </Button>
+
             <Link
               href="/"
               target="_blank"
@@ -1454,12 +1655,49 @@ export default function AdminPortalPage() {
         </header>
 
         {/* BODY CONTENT */}
-        <main className="admin-panel-shell p-4 sm:p-8 flex-1 space-y-6 max-w-7xl w-full mx-auto rounded-[28px] my-4 sm:my-6">
+        <main className="admin-panel-shell p-4 sm:p-8 flex-1 space-y-6 max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1600px] w-full mx-auto rounded-[28px] my-4 sm:my-6">
           {/* ===================================================================
               TAB 1: DASHBOARD & LIVE CHARTS (REMOVED DUMMY DATA)
              =================================================================== */}
           {currentTab === "dashboard" && (
             <div className="space-y-6">
+              {/* Dashboard Live Status & Action Bar */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#090d0a] border border-emerald-950/80">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_#4ade80]" />
+                  <div>
+                    <h2 className="text-sm font-bold text-white">
+                      Live Academy Overview & Performance Metrics
+                    </h2>
+                    <p className="text-[11px] text-zinc-400">
+                      Direct sync with live Supabase database
+                      {lastSyncedTime &&
+                        ` • Synced at ${lastSyncedTime.toLocaleTimeString()}`}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleRefresh("dashboard")}
+                  disabled={refreshing}
+                  title="Reload all dashboard analytics and live CRM statistics"
+                  className="gap-2 border-emerald-950 hover:bg-emerald-950/60 text-emerald-300 text-xs font-semibold shrink-0"
+                >
+                  <RefreshCw
+                    size={14}
+                    className={
+                      refreshing ? "animate-spin text-emerald-400" : ""
+                    }
+                  />
+                  <span>
+                    {refreshing
+                      ? "Refreshing Analytics..."
+                      : "Refresh Analytics"}
+                  </span>
+                </Button>
+              </div>
+
               {/* Metric Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
                 <Card className="hover:border-emerald-500/40 transition-colors">
@@ -1886,6 +2124,23 @@ export default function AdminPortalPage() {
                 </div>
 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleRefresh("courses")}
+                    disabled={refreshing}
+                    title="Refresh courses directly from live database (bypasses cache)"
+                    className="gap-1.5 border-emerald-950 hover:bg-emerald-950/60 text-emerald-300 text-xs font-semibold shrink-0"
+                  >
+                    <RefreshCw
+                      size={14}
+                      className={
+                        refreshing ? "animate-spin text-emerald-400" : ""
+                      }
+                    />
+                    <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
+                  </Button>
+
                   <select
                     value={courseCategoryFilter}
                     onChange={(e) => setCourseCategoryFilter(e.target.value)}
@@ -1921,7 +2176,7 @@ export default function AdminPortalPage() {
                   >
                     <div className="h-44 relative bg-black overflow-hidden">
                       <img
-                        src={c.image_url || DEFAULT_COURSE_IMG}
+                        src={cacheBustUrl(c.image_url || DEFAULT_COURSE_IMG)}
                         alt={c.title_en}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         onError={(e) => {
@@ -2017,22 +2272,44 @@ export default function AdminPortalPage() {
              =================================================================== */}
           {currentTab === "sections" && (
             <div className="space-y-6">
-              <TabsList>
-                {["hero", "story", "why", "voices", "faq", "cta"].map((sec) => (
-                  <TabsTrigger
-                    key={sec}
-                    active={activeSectionKey === sec}
-                    onClick={() => setActiveSectionKey(sec)}
-                    className="capitalize"
-                  >
-                    {sec === "voices"
-                      ? "Student Voices"
-                      : sec === "cta"
-                        ? "CTA Banner"
-                        : sec}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <TabsList>
+                  {["hero", "story", "why", "voices", "faq", "cta"].map(
+                    (sec) => (
+                      <TabsTrigger
+                        key={sec}
+                        active={activeSectionKey === sec}
+                        onClick={() => setActiveSectionKey(sec)}
+                        className="capitalize"
+                      >
+                        {sec === "voices"
+                          ? "Student Voices"
+                          : sec === "cta"
+                            ? "CTA Banner"
+                            : sec}
+                      </TabsTrigger>
+                    ),
+                  )}
+                </TabsList>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleRefresh("sections")}
+                  disabled={refreshing}
+                  title="Refresh sections and texts directly from live database"
+                  className="gap-1.5 border-emerald-950 hover:bg-emerald-950/60 text-emerald-300 text-xs font-semibold shrink-0"
+                >
+                  <RefreshCw
+                    size={14}
+                    className={
+                      refreshing ? "animate-spin text-emerald-400" : ""
+                    }
+                  />
+                  <span>
+                    {refreshing ? "Refreshing..." : "Refresh Sections"}
+                  </span>
+                </Button>
+              </div>
 
               {/* HERO SECTION EDITOR */}
               {activeSectionKey === "hero" && (
@@ -2748,8 +3025,8 @@ export default function AdminPortalPage() {
               TAB 4: CONTACT & WHATSAPP CONFIGURATION
              =================================================================== */}
           {currentTab === "contact" && settings && (
-            <form onSubmit={handleSaveContact} className="space-y-6">
-              <Card>
+            <form onSubmit={handleSaveContact} className="space-y-6 w-full">
+              <Card className="w-full">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
                     <CardTitle>WhatsApp & Phone Channels</CardTitle>
@@ -2758,18 +3035,37 @@ export default function AdminPortalPage() {
                       support timing
                     </CardDescription>
                   </div>
-                  <Button
-                    type="submit"
-                    disabled={savingKey === "contact"}
-                    className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
-                  >
-                    <Save size={16} />
-                    <span>
-                      {savingKey === "contact"
-                        ? "Saving..."
-                        : "Save Contact Settings"}
-                    </span>
-                  </Button>
+                  <div className="flex items-center gap-2.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRefresh("contact")}
+                      disabled={refreshing}
+                      title="Reload settings from database"
+                      className="gap-1.5 border-emerald-950 hover:bg-emerald-950/60 text-emerald-300 text-xs font-semibold"
+                    >
+                      <RefreshCw
+                        size={14}
+                        className={
+                          refreshing ? "animate-spin text-emerald-400" : ""
+                        }
+                      />
+                      <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={savingKey === "contact"}
+                      className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                    >
+                      <Save size={16} />
+                      <span>
+                        {savingKey === "contact"
+                          ? "Saving..."
+                          : "Save Contact Settings"}
+                      </span>
+                    </Button>
+                  </div>
                 </CardHeader>
 
                 <CardContent className="space-y-5">
@@ -2877,7 +3173,7 @@ export default function AdminPortalPage() {
               </Card>
 
               {/* Location & Social Links Card */}
-              <Card>
+              <Card className="w-full">
                 <CardHeader>
                   <CardTitle>Campus Location & Official Social Links</CardTitle>
                 </CardHeader>
@@ -2977,27 +3273,45 @@ export default function AdminPortalPage() {
                     Instructor profiles, specialties and designations
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setMentorForm({
-                      id: "",
-                      name_en: "",
-                      name_bn: "",
-                      designation_en: "",
-                      designation_bn: "",
-                      specialty_en: "",
-                      specialty_bn: "",
-                      category: "Robotics & Tech",
-                      avatar_url: DEFAULT_AVATAR_IMG,
-                    });
-                    setIsMentorModalOpen(true);
-                  }}
-                  className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold shadow-md shadow-emerald-500/20"
-                >
-                  <Plus size={16} />
-                  <span>Add Faculty Mentor</span>
-                </Button>
+                <div className="flex items-center gap-2.5">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleRefresh("mentors")}
+                    disabled={refreshing}
+                    title="Refresh mentors from database"
+                    className="gap-1.5 border-emerald-950 hover:bg-emerald-950/60 text-emerald-300 text-xs font-semibold shrink-0"
+                  >
+                    <RefreshCw
+                      size={14}
+                      className={
+                        refreshing ? "animate-spin text-emerald-400" : ""
+                      }
+                    />
+                    <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setMentorForm({
+                        id: "",
+                        name_en: "",
+                        name_bn: "",
+                        designation_en: "",
+                        designation_bn: "",
+                        specialty_en: "",
+                        specialty_bn: "",
+                        category: "Robotics & Tech",
+                        avatar_url: DEFAULT_AVATAR_IMG,
+                      });
+                      setIsMentorModalOpen(true);
+                    }}
+                    className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold shadow-md shadow-emerald-500/20"
+                  >
+                    <Plus size={16} />
+                    <span>Add Faculty Mentor</span>
+                  </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -3007,7 +3321,7 @@ export default function AdminPortalPage() {
                     className="p-6 text-center flex flex-col items-center hover:border-emerald-500/40 transition-colors"
                   >
                     <img
-                      src={m.avatar_url || DEFAULT_AVATAR_IMG}
+                      src={cacheBustUrl(m.avatar_url || DEFAULT_AVATAR_IMG)}
                       alt={m.name_en}
                       className="w-20 h-20 rounded-full object-cover border-2 border-emerald-400 mb-4 shadow-[0_0_15px_rgba(74,222,128,0.25)]"
                       onError={(e) => {
@@ -3075,6 +3389,22 @@ export default function AdminPortalPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRefresh("leads")}
+                    disabled={refreshing}
+                    title="Check for new student inquiry submissions"
+                    className="gap-1.5 border-emerald-950 hover:bg-emerald-950/60 text-emerald-300 text-xs font-semibold"
+                  >
+                    <RefreshCw
+                      size={14}
+                      className={
+                        refreshing ? "animate-spin text-emerald-400" : ""
+                      }
+                    />
+                    <span>{refreshing ? "Syncing..." : "Refresh Leads"}</span>
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -3282,6 +3612,22 @@ export default function AdminPortalPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleRefresh("media")}
+                    disabled={refreshing}
+                    title="Refresh media files directly from Supabase storage bucket"
+                    className="gap-1.5 border-emerald-950 hover:bg-emerald-950/60 text-emerald-300 text-xs font-semibold shrink-0"
+                  >
+                    <RefreshCw
+                      size={14}
+                      className={
+                        refreshing ? "animate-spin text-emerald-400" : ""
+                      }
+                    />
+                    <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
+                  </Button>
                   <div className="relative w-full sm:w-64">
                     <Search
                       size={15}
@@ -3336,7 +3682,7 @@ export default function AdminPortalPage() {
                       onClick={() => setPreviewMedia(m)}
                     >
                       <img
-                        src={m.publicUrl}
+                        src={cacheBustUrl(m.publicUrl)}
                         alt={m.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
@@ -3361,21 +3707,35 @@ export default function AdminPortalPage() {
                             : "Supabase Cloud Asset"}
                         </div>
                       </div>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => copyToClipboard(m.publicUrl)}
-                        className="w-full mt-3 h-7 text-[11px] gap-1 font-semibold border-emerald-950 hover:bg-emerald-500 hover:text-black"
-                      >
-                        {copiedUrl === m.publicUrl ? (
-                          <Check size={12} className="text-emerald-400" />
-                        ) : (
-                          <Copy size={12} />
-                        )}
-                        <span>
-                          {copiedUrl === m.publicUrl ? "Copied!" : "Copy URL"}
-                        </span>
-                      </Button>
+                      <div className="flex items-center gap-1.5 mt-3">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => copyToClipboard(m.publicUrl)}
+                          className="flex-1 h-7 text-[11px] gap-1 font-semibold border-emerald-950 hover:bg-emerald-500 hover:text-black"
+                        >
+                          {copiedUrl === m.publicUrl ? (
+                            <Check size={12} className="text-emerald-400" />
+                          ) : (
+                            <Copy size={12} />
+                          )}
+                          <span>
+                            {copiedUrl === m.publicUrl ? "Copied!" : "Copy"}
+                          </span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteMedia(m);
+                          }}
+                          title="Delete image & invalidate cache"
+                          className="h-7 w-7 text-zinc-500 hover:text-rose-400 hover:bg-rose-950/30 border border-zinc-800/60 shrink-0"
+                        >
+                          <Trash2 size={12} />
+                        </Button>
+                      </div>
                     </div>
                   </Card>
                 ))}
@@ -3398,7 +3758,7 @@ export default function AdminPortalPage() {
           MODAL 1: COURSE & PRICING
          =================================================================== */}
       <Dialog open={isCourseModalOpen} onOpenChange={setIsCourseModalOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-4xl w-full">
           <DialogHeader>
             <div>
               <DialogTitle>
@@ -3837,7 +4197,7 @@ export default function AdminPortalPage() {
                   {courseForm.image_url && (
                     <div className="flex items-center gap-4 p-3 rounded-xl bg-[#060a08] border border-emerald-950/70">
                       <img
-                        src={courseForm.image_url}
+                        src={cacheBustUrl(courseForm.image_url)}
                         alt="Preview"
                         className="w-20 h-14 object-cover rounded-lg border border-emerald-950"
                         onError={(e) => {
@@ -3885,7 +4245,7 @@ export default function AdminPortalPage() {
           MODAL 2: MENTOR & FACULTY
          =================================================================== */}
       <Dialog open={isMentorModalOpen} onOpenChange={setIsMentorModalOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl w-full">
           <DialogHeader>
             <DialogTitle>
               {mentorForm.id ? "Edit Faculty Mentor" : "Add Faculty Mentor"}
@@ -3973,7 +4333,9 @@ export default function AdminPortalPage() {
               {/* Avatar Upload */}
               <div className="flex items-center gap-4 p-3 rounded-xl bg-[#060a08] border border-emerald-950/70">
                 <img
-                  src={mentorForm.avatar_url || DEFAULT_AVATAR_IMG}
+                  src={cacheBustUrl(
+                    mentorForm.avatar_url || DEFAULT_AVATAR_IMG,
+                  )}
                   alt="Avatar"
                   className="w-14 h-14 rounded-full object-cover border-2 border-emerald-400"
                   onError={(e) => {
@@ -4029,7 +4391,7 @@ export default function AdminPortalPage() {
           MODAL 3: ADD NEW LEAD MANUALLY
          =================================================================== */}
       <Dialog open={isAddLeadModalOpen} onOpenChange={setIsAddLeadModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-xl w-full">
           <DialogHeader>
             <DialogTitle>Log Student Inquiry (CRM)</DialogTitle>
             <DialogDescription>
@@ -4138,7 +4500,7 @@ export default function AdminPortalPage() {
           setLeadNotesModal((prev) => ({ ...prev, open: val }))
         }
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-xl w-full">
           <DialogHeader>
             <DialogTitle>Counsellor Notes</DialogTitle>
             <DialogClose
@@ -4221,23 +4583,44 @@ export default function AdminPortalPage() {
             <div className="p-6 flex flex-col items-center">
               <div className="max-h-[60vh] overflow-hidden rounded-xl border border-emerald-950/80 bg-black flex items-center justify-center">
                 <img
-                  src={previewMedia.publicUrl}
+                  src={cacheBustUrl(previewMedia.publicUrl)}
                   alt={previewMedia.name}
                   className="max-h-[60vh] max-w-full object-contain"
                 />
               </div>
-              <div className="w-full mt-4 flex items-center justify-between gap-3">
-                <div className="text-xs text-zinc-400 font-mono truncate max-w-[350px]">
+              <div className="w-full mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-xs text-zinc-400 font-mono truncate max-w-full sm:max-w-[280px]">
                   {previewMedia.publicUrl}
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => copyToClipboard(previewMedia.publicUrl)}
-                  className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold shrink-0"
-                >
-                  <Copy size={13} className="mr-1" />
-                  <span>Copy CDN URL</span>
-                </Button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <label className="bg-zinc-900 border border-emerald-950 hover:border-emerald-500/50 hover:text-emerald-300 text-zinc-300 text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all shadow-sm">
+                    <Upload size={13} />
+                    <span>Replace Image</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleReplaceMedia(previewMedia, e)}
+                      className="hidden"
+                    />
+                  </label>
+                  <Button
+                    size="sm"
+                    onClick={() => copyToClipboard(previewMedia.publicUrl)}
+                    className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold shrink-0 text-xs gap-1"
+                  >
+                    <Copy size={13} />
+                    <span>Copy URL</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDeleteMedia(previewMedia)}
+                    className="border-rose-900/50 text-rose-400 hover:bg-rose-950/30 hover:border-rose-700 text-xs shrink-0 gap-1"
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete</span>
+                  </Button>
+                </div>
               </div>
             </div>
           </DialogContent>

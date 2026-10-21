@@ -99,3 +99,19 @@
     0 0 0 1px rgba(34, 197, 94, 0.04),
     0 30px 60px rgba(0, 0, 0, 0.45);
 }
+
+/* Ensure admin portal inner forms, cards, and modal dialogs use full width */
+.admin-panel-shell form,
+[role="dialog"] form {
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-top: 0;
+}
+
+.admin-panel-shell .card,
+.admin-panel-shell [class*="Card"],
+.admin-panel-shell > form {
+  width: 100%;
+}
+
