@@ -28,14 +28,21 @@ import { COURSE_CATEGORIES, COURSES } from "../lib/i18n/coursesData";
 import { MENTOR_CATEGORIES, MENTORS } from "../lib/i18n/mentorsData";
 import { MOMENTS_CATEGORIES, MOMENTS } from "../lib/i18n/momentsData";
 import { getHeroStreams } from "../lib/i18n/heroStreams";
+import {
+  DynamicContentProvider,
+  useDynamicContent,
+} from "../lib/DynamicContentContext";
 
 /* Image with a coloured placeholder until a file path is set in lib/assets.js */
-const Pic = ({ k, alt = "", cls = "", style, children }) => (
-  <div className={`ph ${cls}`} style={style}>
-    {IMG[k] && <img src={IMG[k]} alt={alt} loading="lazy" decoding="async" />}
-    {children}
-  </div>
-);
+const Pic = ({ k, src, alt = "", cls = "", style, children }) => {
+  const imgSrc = src || (k && (k.startsWith("http") || k.startsWith("/") ? k : IMG[k]));
+  return (
+    <div className={`ph ${cls}`} style={style}>
+      {imgSrc && <img src={imgSrc} alt={alt} loading="lazy" decoding="async" />}
+      {children}
+    </div>
+  );
+};
 
 function Count({ to, suffix = "" }) {
   const { formatNumber, isBn } = useI18n();
@@ -335,6 +342,7 @@ function RisingHeroBox({
 
 function Hero({ onPhotoClick }) {
   const { dict, lang } = useI18n();
+  const { settings } = useDynamicContent();
   const ref = useRef(null);
   const reduce = useReducedMotion();
   const { scrollYProgress: p } = useScroll({
@@ -448,7 +456,7 @@ function Hero({ onPhotoClick }) {
             </a>
             <a
               className="btn-call"
-              href={PHONE_HREF}
+              href={settings.phoneHref || PHONE_HREF}
               style={{ padding: "14px 22px", fontSize: "0.95rem" }}
             >
               {dict.hero.callNow}
@@ -542,9 +550,32 @@ function Story() {
 }
 
 function Courses({ onOpenModal, onEnrol }) {
-  const { dict, lang } = useI18n();
+  const { dict, lang, isBn } = useI18n();
+  const { dynamicCourses } = useDynamicContent();
   const cats = COURSE_CATEGORIES[lang] || COURSE_CATEGORIES.bn;
-  const courseList = COURSES[lang] || COURSES.bn;
+  const staticCourseList = COURSES[lang] || COURSES.bn;
+
+  const courseList =
+    dynamicCourses && dynamicCourses.length > 0
+      ? dynamicCourses.map((c) => ({
+          id: c.id,
+          t: isBn && c.title_bn ? c.title_bn : c.title_en,
+          c: c.category_en,
+          categoryName: isBn && c.category_bn ? c.category_bn : c.category_en,
+          d: isBn && c.duration_bn ? c.duration_bn : c.duration_en,
+          l: isBn && c.level_bn ? c.level_bn : c.level_en,
+          p: c.price,
+          discountPrice: c.discount_price,
+          i: c.image_url,
+          mentor: c.mentor_name,
+          schedule: isBn && c.schedule_bn ? c.schedule_bn : c.schedule_en,
+          seats: isBn && c.seats_bn ? c.seats_bn : c.seats_en,
+          topics:
+            isBn && c.topics_bn && c.topics_bn.length > 0
+              ? c.topics_bn
+              : c.topics_en || [],
+        }))
+      : staticCourseList;
 
   const [activeCatId, setActiveCatId] = useState("all");
   const [search, setSearch] = useState("");
@@ -1480,7 +1511,17 @@ function Faq() {
 
 function Join({ enrolledCourse }) {
   const { dict, lang } = useI18n();
-  const courseList = COURSES[lang] || COURSES.bn;
+  const { submitEnrolment, dynamicCourses } = useDynamicContent();
+  const staticCourseList = COURSES[lang] || COURSES.bn;
+  const courseList =
+    dynamicCourses && dynamicCourses.length > 0
+      ? dynamicCourses.map((c) => ({
+          id: c.id,
+          t: lang === "en" ? c.title_en : c.title_bn || c.title_en,
+          p: c.price,
+          d: lang === "en" ? c.duration_en : c.duration_bn || c.duration_en,
+        }))
+      : staticCourseList;
 
   const ref = useRef(null);
   const { scrollYProgress: p } = useScroll({
@@ -1507,6 +1548,13 @@ function Join({ enrolledCourse }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     setSent(true);
+    submitEnrolment({
+      full_name: formData.name,
+      phone: formData.phone,
+      email: formData.email,
+      course_name: formData.course,
+      message: "Direct enrolment reservation from website",
+    });
   };
 
   return (
@@ -1624,6 +1672,7 @@ function Join({ enrolledCourse }) {
 
 function FloatingCallButton() {
   const { dict } = useI18n();
+  const { settings } = useDynamicContent();
 
   return (
     <motion.div
@@ -1633,7 +1682,7 @@ function FloatingCallButton() {
       transition={{ delay: 0.8, duration: 0.4 }}
     >
       <a
-        href={WHATSAPP_URL}
+        href={settings.whatsappUrl || WHATSAPP_URL}
         target="_blank"
         rel="noopener noreferrer"
         className="floating-call-btn"
@@ -1653,6 +1702,7 @@ function FloatingCallButton() {
 
 function Footer() {
   const { dict, toBn } = useI18n();
+  const { settings } = useDynamicContent();
 
   return (
     <footer>
@@ -1672,7 +1722,7 @@ function Footer() {
         <div>
           <b>{dict.footer.contact}</b>
           <a
-            href={WHATSAPP_URL}
+            href={settings.whatsappUrl || WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -1683,10 +1733,10 @@ function Footer() {
               gap: "6px",
             }}
           >
-            {dict.footer.whatsapp.replace("{phone}", PHONE)}
+            {dict.footer.whatsapp.replace("{phone}", settings.phone || PHONE)}
           </a>
-          <span>{dict.footer.email}</span>
-          <span>{dict.footer.location}</span>
+          <span>{settings.email || dict.footer.email}</span>
+          <span>{settings.location || dict.footer.location}</span>
         </div>
       </div>
       <div className="wrap footer-bottom">
@@ -1797,7 +1847,9 @@ function PageContent() {
 export default function Page() {
   return (
     <LanguageProvider initialLang="bn">
-      <PageContent />
+      <DynamicContentProvider>
+        <PageContent />
+      </DynamicContentProvider>
     </LanguageProvider>
   );
 }
