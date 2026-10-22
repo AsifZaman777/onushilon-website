@@ -342,7 +342,7 @@ function RisingHeroBox({
 
 function Hero({ onPhotoClick }) {
   const { dict, lang } = useI18n();
-  const { settings } = useDynamicContent();
+  const { settings, dynamicSections } = useDynamicContent();
   const ref = useRef(null);
   const reduce = useReducedMotion();
   const { scrollYProgress: p } = useScroll({
@@ -357,8 +357,57 @@ function Hero({ onPhotoClick }) {
   const ty = useTransform(p, [0, 1], [0, 120 * k]);
   const fade = useTransform(p, [0.5, 1], [1, 0]);
 
-  const streams = getHeroStreams(lang);
-  const words = dict.hero.words;
+  const baseStreams = getHeroStreams(lang);
+  const heroSection = dynamicSections?.hero;
+  const heroData =
+    (lang === "en" ? heroSection?.data_en : heroSection?.data_bn) ||
+    heroSection?.data_en ||
+    heroSection?.data_bn;
+
+  // Custom floating cards if provided in backend media
+  const customCards = heroSection?.media?.floating_cards;
+  const streams =
+    customCards && Array.isArray(customCards) && customCards.length >= 4
+      ? baseStreams.map((stream, idx) => {
+          if (!customCards[idx]) return stream;
+          const custom = customCards[idx];
+          const newStream = [...stream];
+          newStream[0] = {
+            ...newStream[0],
+            src: custom.src || newStream[0].src,
+            title:
+              (lang === "bn" ? custom.title_bn : custom.title_en) ||
+              custom.title ||
+              newStream[0].title,
+            badge:
+              (lang === "bn" ? custom.badge_bn : custom.badge_en) ||
+              custom.badge ||
+              newStream[0].badge,
+          };
+          return newStream;
+        })
+      : baseStreams;
+
+  // Dynamic headline words
+  let words = dict.hero?.words || ["Learn", "by", "practice."];
+  if (heroData?.headline_words) {
+    if (Array.isArray(heroData.headline_words) && heroData.headline_words.length > 0) {
+      words = heroData.headline_words;
+    } else if (typeof heroData.headline_words === "string") {
+      words = heroData.headline_words
+        .split("\n")
+        .map((w) => w.trim())
+        .filter(Boolean);
+      if (words.length === 0) words = [heroData.headline_words];
+    }
+  }
+
+  const sub = heroData?.subtitle || dict.hero?.sub;
+  const browseCoursesText =
+    heroData?.primary_cta_text || dict.hero?.browseCourses || "Browse courses";
+  const exploreMomentsText =
+    heroData?.secondary_cta_text || dict.hero?.exploreMoments || "Explore class moments";
+  const callNowText = heroData?.call_now_text || dict.hero?.callNow || "📞 Call now";
 
   return (
     <section id="home" className="hero" ref={ref}>
@@ -440,7 +489,7 @@ function Hero({ onPhotoClick }) {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.9 }}
           >
-            {dict.hero.sub}
+            {sub}
           </motion.p>
           <motion.div
             className="cta"
@@ -449,17 +498,17 @@ function Hero({ onPhotoClick }) {
             transition={{ delay: 1.1 }}
           >
             <a className="btn" href="#courses">
-              {dict.hero.browseCourses}
+              {browseCoursesText}
             </a>
             <a className="btn ghost" href="#moments">
-              {dict.hero.exploreMoments}
+              {exploreMomentsText}
             </a>
             <a
               className="btn-call"
               href={settings.phoneHref || PHONE_HREF}
               style={{ padding: "14px 22px", fontSize: "0.95rem" }}
             >
-              {dict.hero.callNow}
+              {callNowText}
             </a>
           </motion.div>
         </motion.div>
@@ -492,7 +541,28 @@ function Marquee() {
 }
 
 function Story() {
-  const { dict } = useI18n();
+  const { dict, lang } = useI18n();
+  const { dynamicSections } = useDynamicContent();
+  const storySection = dynamicSections?.story;
+  const storyData =
+    (lang === "en" ? storySection?.data_en : storySection?.data_bn) ||
+    storySection?.data_en ||
+    storySection?.data_bn;
+
+  const heading = storyData?.heading || dict.story.h2;
+  const lead = storyData?.lead || dict.story.lead;
+
+  let timeline = dict.story.timeline;
+  if (storyData?.timeline && Array.isArray(storyData.timeline) && storyData.timeline.length > 0) {
+    timeline = storyData.timeline.map((item) => {
+      if (Array.isArray(item)) return item;
+      return [item.year || "", item.text || ""];
+    });
+  }
+
+  const imgStory = storySection?.media?.image_story;
+  const imgStory2 = storySection?.media?.image_story2;
+
   const ref = useRef(null);
   const { scrollYProgress: p } = useScroll({
     target: ref,
@@ -507,6 +577,7 @@ function Story() {
           <motion.div className="a ph" style={{ y: a }}>
             <Pic
               k="story"
+              src={imgStory}
               alt="Classroom"
               style={{ height: "100%" }}
             />
@@ -514,6 +585,7 @@ function Story() {
           <motion.div className="b" style={{ y: b }}>
             <Pic
               k="story2"
+              src={imgStory2}
               cls="alt"
               style={{ height: "100%", borderRadius: "inherit" }}
             />
@@ -526,13 +598,13 @@ function Story() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            {dict.story.h2}
+            {heading}
           </motion.h2>
-          <p className="lead">{dict.story.lead}</p>
+          <p className="lead">{lead}</p>
           <div className="tl">
-            {dict.story.timeline.map(([y, t], i) => (
+            {timeline.map(([y, t], i) => (
               <motion.div
-                key={y}
+                key={`${y}-${i}`}
                 initial={{ opacity: 0, x: -24 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
@@ -548,6 +620,7 @@ function Story() {
     </section>
   );
 }
+
 
 function Courses({ onOpenModal, onEnrol }) {
   const { dict, lang, isBn } = useI18n();
@@ -802,8 +875,45 @@ function CourseModal({ course, onClose, onEnrol }) {
 
 function Mentors({ onEnrol }) {
   const { dict, lang, toBn } = useI18n();
+  const { dynamicMentors } = useDynamicContent();
   const cats = MENTOR_CATEGORIES[lang] || MENTOR_CATEGORIES.bn;
-  const mentorsList = MENTORS[lang] || MENTORS.bn;
+  const staticMentorsList = MENTORS[lang] || MENTORS.bn;
+
+  const mentorsList =
+    dynamicMentors && Array.isArray(dynamicMentors) && dynamicMentors.length > 0
+      ? dynamicMentors
+          .filter((m) => m.is_active !== false)
+          .map((m) => ({
+            id: m.id,
+            name: lang === "en" ? m.name_en : m.name_bn || m.name_en,
+            role:
+              lang === "en"
+                ? m.designation_en
+                : m.designation_bn || m.designation_en,
+            edu:
+              lang === "en"
+                ? m.specialty_en
+                : m.specialty_bn || m.specialty_en,
+            university:
+              m.university ||
+              (lang === "en" ? m.specialty_en : m.specialty_bn),
+            dept: m.category || "Robotics & Tech",
+            categoryName: m.category || "Robotics & Tech",
+            badge: m.badge || "👨‍🏫",
+            badgeFull: m.badge_full || m.category,
+            img: m.avatar_url || m.image_url,
+            course:
+              lang === "en"
+                ? m.course_name_en || m.course || ""
+                : m.course_name_bn || m.course || "",
+            stats: m.stats || "6+ Yrs • Mentor",
+            bio:
+              lang === "en"
+                ? m.bio_en || m.bio || ""
+                : m.bio_bn || m.bio || m.bio_en || "",
+          }))
+      : staticMentorsList;
+
 
   const [activeCatId, setActiveCatId] = useState("all");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -1145,8 +1255,23 @@ function PracticeArena() {
 
 function Moments({ onOpenLightbox }) {
   const { dict, lang } = useI18n();
+  const { dynamicMoments } = useDynamicContent();
   const cats = MOMENTS_CATEGORIES[lang] || MOMENTS_CATEGORIES.bn;
-  const momentsList = MOMENTS[lang] || MOMENTS.bn;
+  const staticMomentsList = MOMENTS[lang] || MOMENTS.bn;
+
+  const momentsList =
+    dynamicMoments && Array.isArray(dynamicMoments) && dynamicMoments.length > 0
+      ? dynamicMoments.map((m) => ({
+          id: m.id,
+          t: lang === "en" ? m.title_en : m.title_bn || m.title_en,
+          tag: lang === "en" ? m.badge_en : m.badge_bn || m.badge_en,
+          c: m.category || "Robotics",
+          desc: lang === "en" ? m.desc_en || "" : m.desc_bn || m.desc_en || "",
+          img: m.image_url,
+          src: m.image_url,
+        }))
+      : staticMomentsList;
+
 
   const [activeCatId, setActiveCatId] = useState("all");
 
@@ -1341,9 +1466,24 @@ function LightboxModal({ activeIndex, items, onClose, onNavigate }) {
 }
 
 function Why() {
-  const { dict } = useI18n();
+  const { dict, lang } = useI18n();
+  const { dynamicSections } = useDynamicContent();
+  const whySection = dynamicSections?.why;
+  const whyData =
+    (lang === "en" ? whySection?.data_en : whySection?.data_bn) ||
+    whySection?.data_en ||
+    whySection?.data_bn;
+
   const stats = dict.why.stats;
-  const items = dict.why.items;
+  const heading = whyData?.heading || dict.why.h2;
+
+  let items = dict.why.items;
+  if (whyData?.features && Array.isArray(whyData.features) && whyData.features.length > 0) {
+    items = whyData.features.map((f) => {
+      if (Array.isArray(f)) return f;
+      return [f.title || "", f.desc || ""];
+    });
+  }
 
   return (
     <section id="why">
@@ -1359,11 +1499,11 @@ function Why() {
           ))}
         </div>
         <div style={{ marginTop: 110 }}>
-          <h2 className="h2">{dict.why.h2}</h2>
+          <h2 className="h2">{heading}</h2>
           <div className="why">
             {items.map(([h, t], i) => (
               <motion.div
-                key={h}
+                key={`${h}-${i}`}
                 whileHover={{ y: -8 }}
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1 }}
@@ -1382,8 +1522,32 @@ function Why() {
 }
 
 function Voices() {
-  const { dict } = useI18n();
-  const voices = dict.voices.testimonials;
+  const { dict, lang } = useI18n();
+  const { dynamicSections } = useDynamicContent();
+  const voicesSection = dynamicSections?.voices;
+  const voicesData =
+    (lang === "en" ? voicesSection?.data_en : voicesSection?.data_bn) ||
+    voicesSection?.data_en ||
+    voicesSection?.data_bn;
+
+  const heading = voicesData?.heading || dict.voices.h2;
+
+  let voices = dict.voices.testimonials;
+  if (
+    voicesData?.testimonials &&
+    Array.isArray(voicesData.testimonials) &&
+    voicesData.testimonials.length > 0
+  ) {
+    voices = voicesData.testimonials.map((t) => {
+      if (Array.isArray(t)) return t;
+      return [
+        t.quote || "",
+        t.name || "",
+        t.role || "",
+        t.image_url || t.img || "art1",
+      ];
+    });
+  }
 
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -1397,7 +1561,9 @@ function Voices() {
   const prev = () => setI((x) => (x - 1 + voices.length) % voices.length);
   const next = () => setI((x) => (x + 1) % voices.length);
 
-  const [q, n, r, img] = voices[i] || voices[0];
+  const [q, n, r, img] = voices[i] || voices[0] || ["", "", "", "art1"];
+  const isUrl = img && typeof img === "string" && (img.startsWith("http") || img.startsWith("/"));
+
   return (
     <section id="voices" className="tst">
       <div
@@ -1405,7 +1571,7 @@ function Voices() {
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
-        <h2 className="h2">{dict.voices.h2}</h2>
+        <h2 className="h2">{heading}</h2>
         <AnimatePresence mode="wait">
           <motion.div
             key={i}
@@ -1415,7 +1581,7 @@ function Voices() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <Pic k={img} alt={n} cls="alt" />
+            <Pic k={isUrl ? null : img} src={isUrl ? img : null} alt={n} cls="alt" />
             <div>
               <blockquote>“{q}”</blockquote>
               <p style={{ marginTop: 16 }}>
@@ -1459,7 +1625,22 @@ function Voices() {
 }
 
 function Faq() {
-  const { dict } = useI18n();
+  const { dict, lang } = useI18n();
+  const { dynamicSections } = useDynamicContent();
+  const faqSection = dynamicSections?.faq;
+  const faqData =
+    (lang === "en" ? faqSection?.data_en : faqSection?.data_bn) ||
+    faqSection?.data_en ||
+    faqSection?.data_bn;
+
+  const heading = faqData?.heading || dict.faq.h2;
+  const lead = faqData?.lead || dict.faq.lead;
+
+  const items =
+    faqData?.items && Array.isArray(faqData.items) && faqData.items.length > 0
+      ? faqData.items
+      : dict.faq.items;
+
   const [openIdx, setOpenIdx] = useState(0);
 
   const toggle = (idx) => {
@@ -1473,15 +1654,15 @@ function Faq() {
           style={{ textAlign: "center", maxWidth: "650px", margin: "0 auto" }}
         >
           <h2 className="h2" style={{ margin: "0 auto" }}>
-            {dict.faq.h2}
+            {heading}
           </h2>
           <p className="lead" style={{ margin: "14px auto 0" }}>
-            {dict.faq.lead}
+            {lead}
           </p>
         </div>
 
         <div className="faq-list">
-          {dict.faq.items.map((faq, idx) => {
+          {items.map((faq, idx) => {
             const isOpen = openIdx === idx;
             return (
               <div key={idx} className={`faq-item ${isOpen ? "open" : ""}`}>
@@ -1517,7 +1698,18 @@ function Faq() {
 
 function Join({ enrolledCourse }) {
   const { dict, lang } = useI18n();
-  const { submitEnrolment, dynamicCourses } = useDynamicContent();
+  const { submitEnrolment, dynamicCourses, dynamicSections } = useDynamicContent();
+  const ctaSection = dynamicSections?.cta;
+  const ctaData =
+    (lang === "en" ? ctaSection?.data_en : ctaSection?.data_bn) ||
+    ctaSection?.data_en ||
+    ctaSection?.data_bn;
+
+  const heading = ctaData?.heading || dict.join.h2;
+  const lead = ctaData?.lead || dict.join.lead;
+  const submitBtnText = ctaData?.submit_btn || dict.join.submitBtn;
+  const bgImage = ctaSection?.media?.background_image;
+
   const staticCourseList = COURSES[lang] || COURSES.bn;
   const courseList =
     dynamicCourses && dynamicCourses.length > 0
@@ -1566,13 +1758,13 @@ function Join({ enrolledCourse }) {
   return (
     <section id="join" className="cta-s" ref={ref} style={{ padding: 0 }}>
       <motion.div className="cta-bg" style={{ y }}>
-        <Pic k="cta" />
+        <Pic k="cta" src={bgImage} />
       </motion.div>
       <div className="wrap" style={{ padding: "100px 0" }}>
         <h2 className="h2" style={{ maxWidth: "16ch" }}>
-          {dict.join.h2}
+          {heading}
         </h2>
-        <p className="lead">{dict.join.lead}</p>
+        <p className="lead">{lead}</p>
 
         {sent ? (
           <motion.div
@@ -1666,7 +1858,7 @@ function Join({ enrolledCourse }) {
                 type="submit"
                 style={{ padding: "16px 36px", fontSize: "1.05rem" }}
               >
-                {dict.join.submitBtn}
+                {submitBtnText}
               </button>
             </div>
           </form>
