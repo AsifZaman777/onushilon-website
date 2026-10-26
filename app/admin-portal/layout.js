@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function AdminPortalLayout({ children }) {
   return (
-    <div className="min-h-screen bg-[#050706] text-zinc-100 font-sans antialiased selection:bg-emerald-500 selection:text-black">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased selection:bg-blue-200 selection:text-slate-900">
       {children}
     </div>
   );

@@ -27,7 +27,7 @@ export function Dialog({ open, onOpenChange, children }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
         onClick={() => onOpenChange?.(false)}
         aria-hidden="true"
       />
@@ -42,7 +42,7 @@ export function DialogContent({ className, children, onClose, ...props }) {
       role="dialog"
       aria-modal="true"
       className={cn(
-        "relative z-50 w-full max-w-[1100px] max-h-[90vh] flex flex-col overflow-hidden rounded-[26px] border border-emerald-950/80 bg-[#090d0b]/98 text-zinc-100 shadow-[0_30px_80px_rgba(0,0,0,0.8)] backdrop-blur-xl animate-in zoom-in-95 duration-200",
+        "relative z-50 w-full max-w-[1100px] max-h-[90vh] flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm  animate-in zoom-in-95 duration-200",
         className,
       )}
       onClick={(e) => e.stopPropagation()}
@@ -57,7 +57,7 @@ export function DialogHeader({ className, children, ...props }) {
   return (
     <div
       className={cn(
-        "p-5 sm:p-6 border-b border-emerald-950/60 flex items-center justify-between shrink-0",
+        "p-5 sm:p-6 border-b border-slate-200 flex items-center justify-between shrink-0",
         className,
       )}
       {...props}
@@ -71,7 +71,7 @@ export function DialogTitle({ className, children, ...props }) {
   return (
     <h2
       className={cn(
-        "text-lg font-bold text-white tracking-tight leading-none",
+        "text-lg font-bold text-slate-900 tracking-tight leading-none",
         className,
       )}
       {...props}
@@ -84,7 +84,7 @@ export function DialogTitle({ className, children, ...props }) {
 export function DialogDescription({ className, children, ...props }) {
   return (
     <p
-      className={cn("text-xs text-zinc-400 mt-1.5 leading-normal", className)}
+      className={cn("text-xs text-slate-500 mt-1.5 leading-normal", className)}
       {...props}
     />
   );
@@ -105,7 +105,7 @@ export function DialogFooter({ className, children, ...props }) {
   return (
     <div
       className={cn(
-        "p-4 sm:p-5 border-t border-emerald-950/60 bg-[#060907]/60 flex items-center justify-end gap-3 shrink-0 rounded-b-2xl",
+        "p-4 sm:p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3 shrink-0 rounded-b-2xl",
         className,
       )}
       {...props}
@@ -121,7 +121,7 @@ export function DialogClose({ onClick, className, ...props }) {
       type="button"
       onClick={onClick}
       className={cn(
-        "w-8 h-8 rounded-xl border border-emerald-950/80 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-all",
+        "w-8 h-8 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-all",
         className,
       )}
       {...props}

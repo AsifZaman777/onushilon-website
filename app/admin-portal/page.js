@@ -91,6 +91,8 @@ import {
 import { Badge } from "../../components/ui/badge";
 import { Input, Textarea, Label } from "../../components/ui/input";
 import { TabsList, TabsTrigger } from "../../components/ui/tabs";
+import { UploadStatus } from "../../components/ui/upload-status";
+import { compressImage, uploadWithProgress } from "../../lib/adminUpload";
 
 // Default Cloud Storage Fallback Images
 const DEFAULT_COURSE_IMG =
@@ -98,20 +100,20 @@ const DEFAULT_COURSE_IMG =
 const DEFAULT_AVATAR_IMG =
   "https://okhqtcykqdkivxsghyrv.supabase.co/storage/v1/object/public/onushilon/photos/classroom1.webp";
 
-// Vibrant Black & Lightgreen Color Palette for Dynamic Charts
-const GREEN_PALETTE = [
-  "#22c55e", // Lightgreen / Emerald
-  "#4ade80", // Vibrant Mint
-  "#86efac", // Soft Lightgreen
-  "#10b981", // Deep Emerald
-  "#34d399", // Seafoam
-  "#a7f3d0", // Pale Lime
+// Formal Executive Color Palette for CRM Charts & Funnels
+const CHART_PALETTE = [
+  "#2563eb", // Primary Blue
+  "#0ea5e9", // Sky Blue
+  "#6366f1", // Indigo
+  "#0d9488", // Teal
+  "#8b5cf6", // Purple
+  "#3b82f6", // Blue
 ];
 
 const STATUS_COLORS = {
   new: "#f59e0b", // Amber
-  contacted: "#38bdf8", // Sky
-  enrolled: "#22c55e", // Lightgreen
+  contacted: "#0284c7", // Sky
+  enrolled: "#16a34a", // Emerald Green
   closed: "#64748b", // Slate
 };
 
@@ -145,6 +147,10 @@ export default function AdminPortalPage() {
 
   // Save Loading State
   const [savingKey, setSavingKey] = useState(null);
+
+  // Image upload progress (0-100) + local blob preview shown instantly
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const [uploadPreview, setUploadPreview] = useState(null);
 
   // Course Modal State
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
@@ -441,12 +447,12 @@ export default function AdminPortalPage() {
 
     const entries = Object.values(map);
     if (entries.length === 0) {
-      return [{ name: "No Courses Yet", count: 0, active: 0, fill: "#22c55e" }];
+      return [{ name: "No Courses Yet", count: 0, active: 0, fill: "#2563eb" }];
     }
 
     return entries.map((entry, idx) => ({
       ...entry,
-      fill: GREEN_PALETTE[idx % GREEN_PALETTE.length],
+      fill: CHART_PALETTE[idx % CHART_PALETTE.length],
     }));
   }, [courses]);
 
@@ -514,7 +520,7 @@ export default function AdminPortalPage() {
           : `Course ${i + 1}`,
         price: rawPrice || 4500,
         discount: rawDiscount || 0,
-        fill: GREEN_PALETTE[i % GREEN_PALETTE.length],
+        fill: CHART_PALETTE[i % CHART_PALETTE.length],
       };
     });
   }, [courses]);
@@ -625,30 +631,57 @@ export default function AdminPortalPage() {
     }
   };
 
+  // Shared upload pipeline: instant local preview -> compress -> upload with progress
+  const uploadImage = async (file, folder, key) => {
+    const previewUrl = URL.createObjectURL(file);
+    setSavingKey(key);
+    setUploadPreview(previewUrl);
+    setUploadProgress(0);
+    try {
+      const prepared = await compressImage(file);
+      const res = await uploadWithProgress({
+        url: `${API_BASE}/media/upload`,
+        token,
+        file: prepared,
+        folder,
+        onProgress: setUploadProgress,
+      });
+      return res.data;
+    } catch (err) {
+      if (err.message === "Unauthorized") {
+        setToken("");
+        localStorage.removeItem("onushilon_admin_token");
+        showToast("Session expired. Please sign in again.", "error");
+      }
+      throw err;
+    } finally {
+      setSavingKey(null);
+      setUploadProgress(null);
+      setUploadPreview(null);
+      URL.revokeObjectURL(previewUrl);
+    }
+  };
+
+  // Light-weight refresh of just the media library after an upload/delete
+  const refreshMedia = async () => {
+    const res = await apiFetch("/media").catch(() => null);
+    if (res?.data) setMedia(res.data);
+  };
+
   const handleCourseImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const formData = new FormData();
-    formData.append("image", file);
-    formData.append("folder", "courses");
-
-    setSavingKey("course-img");
     try {
-      const res = await apiFetch("/media/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (res.data?.publicUrl) {
-        const cacheBusted = cacheBustUrl(res.data.publicUrl);
-        setCourseForm((prev) => ({ ...prev, image_url: cacheBusted }));
-        showToast("Image uploaded to Supabase & cache invalidated!", "success");
-        fetchDashboardData(token, "courses");
+      const data = await uploadImage(file, "courses", "course-img");
+      if (data?.publicUrl) {
+        setCourseForm((prev) => ({ ...prev, image_url: data.publicUrl }));
+        showToast("Image uploaded. Click \"Save Course\" to publish it.", "success");
+        refreshMedia();
       }
     } catch (err) {
       showToast(err.message, "error");
     } finally {
-      setSavingKey(null);
+      if (e.target) e.target.value = "";
     }
   };
 
@@ -827,27 +860,17 @@ export default function AdminPortalPage() {
   const handleMentorAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const formData = new FormData();
-    formData.append("image", file);
-    formData.append("folder", "mentors");
-
-    setSavingKey("mentor-img");
     try {
-      const res = await apiFetch("/media/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (res.data?.publicUrl) {
-        const cacheBusted = cacheBustUrl(res.data.publicUrl);
-        setMentorForm((prev) => ({ ...prev, avatar_url: cacheBusted }));
-        showToast("Mentor avatar uploaded & cache invalidated!", "success");
-        fetchDashboardData(token, "mentors");
+      const data = await uploadImage(file, "mentors", "mentor-img");
+      if (data?.publicUrl) {
+        setMentorForm((prev) => ({ ...prev, avatar_url: data.publicUrl }));
+        showToast("Avatar uploaded. Click \"Save Mentor\" to publish it.", "success");
+        refreshMedia();
       }
     } catch (err) {
       showToast(err.message, "error");
     } finally {
-      setSavingKey(null);
+      if (e.target) e.target.value = "";
     }
   };
 
@@ -1049,31 +1072,19 @@ export default function AdminPortalPage() {
   const handleGeneralMediaUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const formData = new FormData();
-    formData.append("image", file);
-    formData.append(
-      "folder",
-      mediaFolderFilter !== "all" ? mediaFolderFilter : "general",
-    );
-
-    setSavingKey("general-img");
     try {
-      const res = await apiFetch("/media/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (res.data?.publicUrl) {
-        showToast(
-          "Uploaded to Supabase storage & cache invalidated!",
-          "success",
-        );
-        fetchDashboardData(token, "media");
+      const data = await uploadImage(
+        file,
+        mediaFolderFilter !== "all" ? mediaFolderFilter : "general",
+        "general-img",
+      );
+      if (data?.publicUrl) {
+        showToast("Image uploaded to the media library.", "success");
+        await refreshMedia();
       }
     } catch (err) {
       showToast(err.message, "error");
     } finally {
-      setSavingKey(null);
       if (e.target) e.target.value = "";
     }
   };
@@ -1244,12 +1255,12 @@ export default function AdminPortalPage() {
   // Prevent SSR Hydration Mismatch
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-[#050706] flex items-center justify-center">
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 animate-pulse">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-green-400 text-black font-black text-2xl flex items-center justify-center shadow-[0_0_35px_rgba(34,197,94,0.35)]">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-2xl flex items-center justify-center shadow-sm">
             অ
           </div>
-          <div className="text-xs uppercase font-mono tracking-widest text-emerald-400">
+          <div className="text-xs uppercase font-mono tracking-widest text-blue-700">
             Initializing Onushilon CRM...
           </div>
         </div>
@@ -1262,20 +1273,20 @@ export default function AdminPortalPage() {
   // ===========================================================================
   if (!token) {
     return (
-      <div className="min-h-screen bg-[#050706] flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 relative overflow-hidden">
         {/* Subtle Ambient Glows */}
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-blue-50 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-green-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <Card className="w-full max-w-md border-emerald-950/80 bg-[#090d0b]/90 shadow-[0_0_50px_rgba(0,0,0,0.85)] backdrop-blur-2xl relative z-10">
+        <Card className="w-full max-w-md border-slate-200 bg-white shadow-sm backdrop-blur-2xl relative z-10">
           <CardHeader className="text-center pb-2">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 via-green-400 to-emerald-300 text-black font-black text-2xl flex items-center justify-center mx-auto shadow-[0_0_25px_rgba(74,222,128,0.35)] mb-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-blue-500 to-indigo-600 text-white font-black text-2xl flex items-center justify-center mx-auto shadow-sm mb-4">
               অ
             </div>
-            <CardTitle className="text-2xl font-bold text-white tracking-tight">
+            <CardTitle className="text-2xl font-bold text-slate-900 tracking-tight">
               Onushilon CRM Portal
             </CardTitle>
-            <CardDescription className="text-xs text-zinc-400 mt-1">
+            <CardDescription className="text-xs text-slate-500 mt-1">
               Black & Lightgreen Executive Control & Student CRM Panel
             </CardDescription>
           </CardHeader>
@@ -1304,10 +1315,10 @@ export default function AdminPortalPage() {
                 />
               </div>
 
-              <div className="bg-[#060a08] border border-emerald-950/80 rounded-xl p-3 text-xs text-zinc-400 flex items-center justify-between">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-500 flex items-center justify-between">
                 <div>
                   Default:{" "}
-                  <span className="text-emerald-400 font-mono">
+                  <span className="text-blue-700 font-mono">
                     admin@onushilon.com
                   </span>
                 </div>
@@ -1318,7 +1329,7 @@ export default function AdminPortalPage() {
                     setAuthPassword("admin1234");
                     showToast("Filled demo admin credentials", "success");
                   }}
-                  className="text-emerald-400 hover:text-emerald-300 underline font-medium text-[11px]"
+                  className="text-blue-700 hover:text-blue-800 underline font-medium text-[11px]"
                 >
                   Auto-fill
                 </button>
@@ -1327,7 +1338,7 @@ export default function AdminPortalPage() {
               <Button
                 type="submit"
                 disabled={authLoading}
-                className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-black font-bold shadow-[0_0_20px_rgba(34,197,94,0.25)] transition-all"
+                className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm transition-all"
               >
                 {authLoading ? "Authenticating..." : "Sign In to Admin Portal"}
               </Button>
@@ -1336,7 +1347,7 @@ export default function AdminPortalPage() {
         </Card>
 
         {toast && (
-          <div className="fixed bottom-6 right-6 px-4 py-3 bg-[#0a0f0d] border border-emerald-500/30 rounded-xl text-zinc-100 shadow-2xl flex items-center gap-3 z-50">
+          <div className="fixed bottom-6 right-6 px-4 py-3 bg-white border border-blue-200 rounded-xl text-slate-900 shadow-2xl flex items-center gap-3 z-50">
             <span className="text-xs font-medium">{toast.message}</span>
           </div>
         )}
@@ -1348,28 +1359,28 @@ export default function AdminPortalPage() {
   // MAIN ADMIN PORTAL (BLACK & LIGHTGREEN REDESIGN)
   // ===========================================================================
   return (
-    <div className="min-h-screen bg-[#050706] text-zinc-100 flex font-sans antialiased selection:bg-emerald-500 selection:text-black">
+    <div className="min-h-screen bg-slate-100 text-slate-900 flex font-sans antialiased selection:bg-blue-200 selection:text-slate-900">
       {/* SIDEBAR NAVIGATION */}
       <aside
-        className={`w-72 bg-[#070a08]/95 border-r border-emerald-950/60 fixed top-0 bottom-0 left-0 z-40 flex flex-col backdrop-blur-2xl transition-transform duration-300 ${
+        className={`w-72 bg-white border-r border-slate-200 fixed top-0 bottom-0 left-0 z-40 flex flex-col backdrop-blur-2xl transition-transform duration-300 ${
           mobileMenuOpen
             ? "translate-x-0"
             : "-translate-x-full md:translate-x-0"
         }`}
       >
         {/* Brand Header */}
-        <div className="p-6 border-b border-emerald-950/60 flex items-center justify-between">
+        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-green-400 text-black font-black text-xl flex items-center justify-center shadow-[0_0_20px_rgba(34,197,94,0.3)]">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-xl flex items-center justify-center shadow-sm">
               অ
             </div>
             <div>
-              <div className="font-bold text-base text-white tracking-tight">
+              <div className="font-bold text-base text-slate-900 tracking-tight">
                 Onushilon
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                <span className="text-[10px] uppercase font-bold text-blue-700 tracking-wider">
                   Admin Portal
                 </span>
               </div>
@@ -1377,7 +1388,7 @@ export default function AdminPortalPage() {
           </div>
           <button
             onClick={() => setMobileMenuOpen(false)}
-            className="md:hidden text-zinc-400 hover:text-white p-1"
+            className="md:hidden text-slate-500 hover:text-slate-900 p-1"
           >
             <X size={20} />
           </button>
@@ -1385,7 +1396,7 @@ export default function AdminPortalPage() {
 
         {/* Navigation Items */}
         <nav className="p-4 flex-1 overflow-y-auto space-y-1">
-          <div className="text-[10px] uppercase tracking-wider font-extrabold text-zinc-500 px-3 py-2">
+          <div className="text-[10px] uppercase tracking-wider font-extrabold text-slate-500 px-3 py-2">
             Overview
           </div>
           <button
@@ -1395,22 +1406,22 @@ export default function AdminPortalPage() {
             }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all ${
               currentTab === "dashboard"
-                ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-semibold shadow-[0_0_15px_rgba(34,197,94,0.12)]"
-                : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/60"
+                ? "bg-blue-50 border border-blue-200 text-blue-700 font-semibold shadow-sm"
+                : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
             <LayoutDashboard
               size={18}
               className={
                 currentTab === "dashboard"
-                  ? "text-emerald-400"
-                  : "text-zinc-500"
+                  ? "text-blue-700"
+                  : "text-slate-500"
               }
             />
             <span>Dashboard & Analytics</span>
           </button>
 
-          <div className="text-[10px] uppercase tracking-wider font-extrabold text-zinc-500 px-3 pt-4 pb-2">
+          <div className="text-[10px] uppercase tracking-wider font-extrabold text-slate-500 px-3 pt-4 pb-2">
             Dynamic Academy Content
           </div>
           <button
@@ -1420,20 +1431,20 @@ export default function AdminPortalPage() {
             }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all ${
               currentTab === "courses"
-                ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-semibold shadow-[0_0_15px_rgba(34,197,94,0.12)]"
-                : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/60"
+                ? "bg-blue-50 border border-blue-200 text-blue-700 font-semibold shadow-sm"
+                : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
             <BookOpen
               size={18}
               className={
-                currentTab === "courses" ? "text-emerald-400" : "text-zinc-500"
+                currentTab === "courses" ? "text-blue-700" : "text-slate-500"
               }
             />
             <span>Courses & Pricing</span>
             <Badge
               variant="outline"
-              className="ml-auto text-[10px] py-0 px-1.5 border-emerald-950"
+              className="ml-auto text-[10px] py-0 px-1.5 border-slate-200"
             >
               {courses.length}
             </Badge>
@@ -1446,14 +1457,14 @@ export default function AdminPortalPage() {
             }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all ${
               currentTab === "sections"
-                ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-semibold shadow-[0_0_15px_rgba(34,197,94,0.12)]"
-                : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/60"
+                ? "bg-blue-50 border border-blue-200 text-blue-700 font-semibold shadow-sm"
+                : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
             <Layers
               size={18}
               className={
-                currentTab === "sections" ? "text-emerald-400" : "text-zinc-500"
+                currentTab === "sections" ? "text-blue-700" : "text-slate-500"
               }
             />
             <span>Site Sections & Texts</span>
@@ -1466,14 +1477,14 @@ export default function AdminPortalPage() {
             }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all ${
               currentTab === "contact"
-                ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-semibold shadow-[0_0_15px_rgba(34,197,94,0.12)]"
-                : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/60"
+                ? "bg-blue-50 border border-blue-200 text-blue-700 font-semibold shadow-sm"
+                : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
             <MessageSquare
               size={18}
               className={
-                currentTab === "contact" ? "text-emerald-400" : "text-zinc-500"
+                currentTab === "contact" ? "text-blue-700" : "text-slate-500"
               }
             />
             <span>WhatsApp & Contact</span>
@@ -1486,26 +1497,26 @@ export default function AdminPortalPage() {
             }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all ${
               currentTab === "mentors"
-                ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-semibold shadow-[0_0_15px_rgba(34,197,94,0.12)]"
-                : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/60"
+                ? "bg-blue-50 border border-blue-200 text-blue-700 font-semibold shadow-sm"
+                : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
             <Users
               size={18}
               className={
-                currentTab === "mentors" ? "text-emerald-400" : "text-zinc-500"
+                currentTab === "mentors" ? "text-blue-700" : "text-slate-500"
               }
             />
             <span>Mentors & Faculty</span>
             <Badge
               variant="outline"
-              className="ml-auto text-[10px] py-0 px-1.5 border-emerald-950"
+              className="ml-auto text-[10px] py-0 px-1.5 border-slate-200"
             >
               {mentors.length}
             </Badge>
           </button>
 
-          <div className="text-[10px] uppercase tracking-wider font-extrabold text-zinc-500 px-3 pt-4 pb-2">
+          <div className="text-[10px] uppercase tracking-wider font-extrabold text-slate-500 px-3 pt-4 pb-2">
             Growth & CRM
           </div>
           <button
@@ -1515,14 +1526,14 @@ export default function AdminPortalPage() {
             }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all ${
               currentTab === "leads"
-                ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-semibold shadow-[0_0_15px_rgba(34,197,94,0.12)]"
-                : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/60"
+                ? "bg-blue-50 border border-blue-200 text-blue-700 font-semibold shadow-sm"
+                : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
             <TrendingUp
               size={18}
               className={
-                currentTab === "leads" ? "text-emerald-400" : "text-zinc-500"
+                currentTab === "leads" ? "text-blue-700" : "text-slate-500"
               }
             />
             <span>Student Inquiries</span>
@@ -1536,7 +1547,7 @@ export default function AdminPortalPage() {
             ) : (
               <Badge
                 variant="outline"
-                className="ml-auto text-[10px] py-0 px-1.5 border-emerald-950"
+                className="ml-auto text-[10px] py-0 px-1.5 border-slate-200"
               >
                 {leads.length}
               </Badge>
@@ -1550,20 +1561,20 @@ export default function AdminPortalPage() {
             }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all ${
               currentTab === "media"
-                ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-semibold shadow-[0_0_15px_rgba(34,197,94,0.12)]"
-                : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/60"
+                ? "bg-blue-50 border border-blue-200 text-blue-700 font-semibold shadow-sm"
+                : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
             <HardDrive
               size={18}
               className={
-                currentTab === "media" ? "text-emerald-400" : "text-zinc-500"
+                currentTab === "media" ? "text-blue-700" : "text-slate-500"
               }
             />
             <span>Supabase Storage</span>
             <Badge
               variant="outline"
-              className="ml-auto text-[10px] py-0 px-1.5 border-emerald-950"
+              className="ml-auto text-[10px] py-0 px-1.5 border-slate-200"
             >
               {media.length}
             </Badge>
@@ -1576,16 +1587,16 @@ export default function AdminPortalPage() {
       {/* MAIN VIEWPORT */}
       <div className="flex-1 md:ml-72 flex flex-col min-h-screen">
         {/* TOP BAR */}
-        <header className="h-16 px-4 sm:px-8 border-b border-emerald-950/60 bg-[#070a08]/90 backdrop-blur-xl flex items-center justify-between sticky top-0 z-30">
+        <header className="h-16 px-4 sm:px-8 border-b border-slate-200 bg-white  flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="md:hidden p-2 rounded-xl border border-zinc-800 text-zinc-300 hover:bg-zinc-900"
+              className="md:hidden p-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100"
             >
               <Menu size={18} />
             </button>
             <div>
-              <h1 className="text-base sm:text-lg font-bold text-white tracking-tight">
+              <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                 {currentTab === "dashboard" &&
                   "Executive Dashboard & Live Analytics"}
                 {currentTab === "courses" && "Course & Pricing Management"}
@@ -1595,7 +1606,7 @@ export default function AdminPortalPage() {
                 {currentTab === "leads" && "Student Leads & Inquiries CRM"}
                 {currentTab === "media" && "Supabase Storage Bucket Explorer"}
               </h1>
-              <div className="text-[11px] text-zinc-500 hidden sm:block">
+              <div className="text-[11px] text-slate-500 hidden sm:block">
                 Onushilon Academy • Real-time Supabase Database Sync
               </div>
             </div>
@@ -1608,14 +1619,14 @@ export default function AdminPortalPage() {
               onClick={() => handleRefresh(currentTab)}
               disabled={refreshing}
               title="Instantly refresh all data from live Supabase database (bypasses cache)"
-              className="px-3 py-1.5 rounded-xl border-emerald-500/30 bg-emerald-950/30 hover:bg-emerald-500/10 text-emerald-300 hover:text-emerald-200 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+              className="px-3 py-1.5 rounded-xl border-blue-200 bg-blue-50 hover:bg-blue-50 text-blue-700 hover:text-emerald-200 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
             >
               <RefreshCw
                 size={13}
                 className={
                   refreshing
-                    ? "animate-spin text-emerald-400"
-                    : "text-emerald-400"
+                    ? "animate-spin text-blue-700"
+                    : "text-blue-700"
                 }
               />
               <span className="hidden sm:inline">
@@ -1627,7 +1638,7 @@ export default function AdminPortalPage() {
             <Link
               href="/"
               target="_blank"
-              className="px-3 py-1.5 rounded-xl border border-zinc-800 hover:bg-zinc-900 text-zinc-300 text-xs font-semibold flex items-center gap-1.5 transition-all"
+              className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all"
             >
               <ExternalLink size={13} />
               <span className="hidden sm:inline">View Website</span>
@@ -1636,7 +1647,7 @@ export default function AdminPortalPage() {
             <Button
               size="sm"
               onClick={openNewCourseModal}
-              className="gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold shadow-md shadow-emerald-500/20"
+              className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md "
             >
               <Plus size={15} />
               <span>Add Course</span>
@@ -1647,7 +1658,7 @@ export default function AdminPortalPage() {
               size="icon"
               onClick={handleLogout}
               title="Sign Out"
-              className="border-zinc-800 text-zinc-400 hover:text-rose-400 hover:border-rose-900/60"
+              className="border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200"
             >
               <LogOut size={15} />
             </Button>
@@ -1662,14 +1673,14 @@ export default function AdminPortalPage() {
           {currentTab === "dashboard" && (
             <div className="space-y-6">
               {/* Dashboard Live Status & Action Bar */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#090d0a] border border-emerald-950/80">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-slate-200">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_#4ade80]" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse shadow-sm" />
                   <div>
-                    <h2 className="text-sm font-bold text-white">
+                    <h2 className="text-sm font-bold text-slate-900">
                       Live Academy Overview & Performance Metrics
                     </h2>
-                    <p className="text-[11px] text-zinc-400">
+                    <p className="text-[11px] text-slate-500">
                       Direct sync with live Supabase database
                       {lastSyncedTime &&
                         ` • Synced at ${lastSyncedTime.toLocaleTimeString()}`}
@@ -1682,12 +1693,12 @@ export default function AdminPortalPage() {
                   onClick={() => handleRefresh("dashboard")}
                   disabled={refreshing}
                   title="Reload all dashboard analytics and live CRM statistics"
-                  className="gap-2 border-emerald-950 hover:bg-emerald-950/60 text-emerald-300 text-xs font-semibold shrink-0"
+                  className="gap-2 border-slate-200 hover:bg-blue-50 text-blue-700 text-xs font-semibold shrink-0"
                 >
                   <RefreshCw
                     size={14}
                     className={
-                      refreshing ? "animate-spin text-emerald-400" : ""
+                      refreshing ? "animate-spin text-blue-700" : ""
                     }
                   />
                   <span>
@@ -1700,74 +1711,74 @@ export default function AdminPortalPage() {
 
               {/* Metric Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-                <Card className="hover:border-emerald-500/40 transition-colors">
+                <Card className="hover:border-blue-300 transition-colors">
                   <CardContent className="p-5 flex items-center justify-between">
                     <div>
-                      <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         Total Courses
                       </div>
-                      <div className="text-3xl font-extrabold text-white mt-1.5">
+                      <div className="text-3xl font-extrabold text-slate-900 mt-1.5">
                         {courses.length}
                       </div>
-                      <div className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1">
+                      <div className="text-[11px] text-blue-700 mt-1 flex items-center gap-1">
                         <CheckCircle size={12} />
                         <span>All published catalog</span>
                       </div>
                     </div>
-                    <div className="w-12 h-12 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shadow-inner">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center shadow-inner">
                       <BookOpen size={22} />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="hover:border-emerald-500/40 transition-colors">
+                <Card className="hover:border-blue-300 transition-colors">
                   <CardContent className="p-5 flex items-center justify-between">
                     <div>
-                      <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         Active Batches
                       </div>
-                      <div className="text-3xl font-extrabold text-emerald-400 mt-1.5">
+                      <div className="text-3xl font-extrabold text-blue-700 mt-1.5">
                         {courses.filter((c) => c.is_active).length}
                       </div>
-                      <div className="text-[11px] text-zinc-500 mt-1">
+                      <div className="text-[11px] text-slate-500 mt-1">
                         {courses.length -
                           courses.filter((c) => c.is_active).length}{" "}
                         draft batches
                       </div>
                     </div>
-                    <div className="w-12 h-12 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shadow-inner">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center shadow-inner">
                       <Activity size={22} />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="hover:border-emerald-500/40 transition-colors">
+                <Card className="hover:border-blue-300 transition-colors">
                   <CardContent className="p-5 flex items-center justify-between">
                     <div>
-                      <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         Total Leads
                       </div>
-                      <div className="text-3xl font-extrabold text-white mt-1.5">
+                      <div className="text-3xl font-extrabold text-slate-900 mt-1.5">
                         {leads.length}
                       </div>
-                      <div className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1">
+                      <div className="text-[11px] text-blue-700 mt-1 flex items-center gap-1">
                         <Zap size={12} />
                         <span>Live Supabase sync</span>
                       </div>
                     </div>
-                    <div className="w-12 h-12 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shadow-inner">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center shadow-inner">
                       <TrendingUp size={22} />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="hover:border-emerald-500/40 transition-colors">
+                <Card className="hover:border-blue-300 transition-colors">
                   <CardContent className="p-5 flex items-center justify-between">
                     <div>
-                      <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         Enrolled Ratio
                       </div>
-                      <div className="text-3xl font-extrabold text-emerald-300 mt-1.5">
+                      <div className="text-3xl font-extrabold text-blue-700 mt-1.5">
                         {leads.length > 0
                           ? `${Math.round(
                               (leads.filter((l) => l.status === "enrolled")
@@ -1777,12 +1788,12 @@ export default function AdminPortalPage() {
                             )}%`
                           : "0%"}
                       </div>
-                      <div className="text-[11px] text-zinc-500 mt-1">
+                      <div className="text-[11px] text-slate-500 mt-1">
                         {leads.filter((l) => l.status === "enrolled").length}{" "}
                         enrolled students
                       </div>
                     </div>
-                    <div className="w-12 h-12 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shadow-inner">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center shadow-inner">
                       <Award size={22} />
                     </div>
                   </CardContent>
@@ -1796,7 +1807,7 @@ export default function AdminPortalPage() {
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                       <CardTitle className="flex items-center gap-2">
-                        <BarChart2 size={18} className="text-emerald-400" />
+                        <BarChart2 size={18} className="text-blue-700" />
                         <span>Live Course Department Distribution</span>
                       </CardTitle>
                       <CardDescription>
@@ -1817,28 +1828,30 @@ export default function AdminPortalPage() {
                         >
                           <CartesianGrid
                             strokeDasharray="3 3"
-                            stroke="rgba(34, 197, 94, 0.08)"
+                            stroke="#f1f5f9"
                           />
                           <XAxis
                             dataKey="name"
-                            stroke="#64748b"
+                            stroke="#94a3b8"
                             fontSize={11}
                             tickLine={false}
                           />
                           <YAxis
-                            stroke="#64748b"
+                            stroke="#94a3b8"
                             fontSize={11}
                             allowDecimals={false}
                           />
                           <Tooltip
                             contentStyle={{
-                              backgroundColor: "#070c09",
-                              borderColor: "rgba(74, 222, 128, 0.3)",
-                              borderRadius: 12,
-                              color: "#fff",
-                              boxShadow: "0 0 20px rgba(0,0,0,0.8)",
+                              backgroundColor: "#ffffff",
+                              borderColor: "#e2e8f0",
+                              borderRadius: 10,
+                              color: "#0f172a",
+                              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.08)",
+                              fontSize: "12px",
+                              fontWeight: "500",
                             }}
-                            cursor={{ fill: "rgba(34, 197, 94, 0.05)" }}
+                            cursor={{ fill: "rgba(241, 245, 249, 0.6)" }}
                           />
                           <Bar
                             dataKey="count"
@@ -1860,7 +1873,7 @@ export default function AdminPortalPage() {
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                       <CardTitle className="flex items-center gap-2">
-                        <PieChartIcon size={18} className="text-emerald-400" />
+                        <PieChartIcon size={18} className="text-blue-700" />
                         <span>Student Inquiries Pipeline</span>
                       </CardTitle>
                       <CardDescription>
@@ -1880,27 +1893,30 @@ export default function AdminPortalPage() {
                         >
                           <CartesianGrid
                             strokeDasharray="3 3"
-                            stroke="rgba(34, 197, 94, 0.08)"
+                            stroke="#f1f5f9"
                           />
                           <XAxis
                             dataKey="name"
-                            stroke="#64748b"
+                            stroke="#94a3b8"
                             fontSize={11}
                             tickLine={false}
                           />
                           <YAxis
-                            stroke="#64748b"
+                            stroke="#94a3b8"
                             fontSize={11}
                             allowDecimals={false}
                           />
                           <Tooltip
                             contentStyle={{
-                              backgroundColor: "#070c09",
-                              borderColor: "rgba(74, 222, 128, 0.3)",
-                              borderRadius: 12,
-                              color: "#fff",
+                              backgroundColor: "#ffffff",
+                              borderColor: "#e2e8f0",
+                              borderRadius: 10,
+                              color: "#0f172a",
+                              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.08)",
+                              fontSize: "12px",
+                              fontWeight: "500",
                             }}
-                            cursor={{ fill: "rgba(34, 197, 94, 0.05)" }}
+                            cursor={{ fill: "rgba(241, 245, 249, 0.6)" }}
                           />
                           <Bar
                             dataKey="count"
@@ -1923,7 +1939,7 @@ export default function AdminPortalPage() {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
                     <CardTitle className="flex items-center gap-2">
-                      <DollarSign size={18} className="text-emerald-400" />
+                      <DollarSign size={18} className="text-blue-700" />
                       <span>Course Pricing & Fee Structure</span>
                     </CardTitle>
                     <CardDescription>
@@ -1948,27 +1964,30 @@ export default function AdminPortalPage() {
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          stroke="rgba(34, 197, 94, 0.08)"
+                          stroke="#f1f5f9"
                         />
                         <XAxis
                           dataKey="title"
-                          stroke="#64748b"
+                          stroke="#94a3b8"
                           fontSize={11}
                           tickLine={false}
                         />
-                        <YAxis stroke="#64748b" fontSize={11} />
+                        <YAxis stroke="#94a3b8" fontSize={11} />
                         <Tooltip
                           formatter={(value) => [
                             `৳${value.toLocaleString()}`,
                             "Tuition Fee",
                           ]}
                           contentStyle={{
-                            backgroundColor: "#070c09",
-                            borderColor: "rgba(74, 222, 128, 0.3)",
-                            borderRadius: 12,
-                            color: "#fff",
+                            backgroundColor: "#ffffff",
+                            borderColor: "#e2e8f0",
+                            borderRadius: 10,
+                            color: "#0f172a",
+                            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.08)",
+                            fontSize: "12px",
+                            fontWeight: "500",
                           }}
-                          cursor={{ fill: "rgba(34, 197, 94, 0.05)" }}
+                          cursor={{ fill: "rgba(241, 245, 249, 0.6)" }}
                         />
                         <Bar
                           dataKey="price"
@@ -2007,7 +2026,7 @@ export default function AdminPortalPage() {
                     <Button
                       size="sm"
                       onClick={() => setCurrentTab("leads")}
-                      className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
                     >
                       View CRM ({leads.length})
                     </Button>
@@ -2016,7 +2035,7 @@ export default function AdminPortalPage() {
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                      <thead className="bg-[#060a08] text-zinc-400 text-xs uppercase tracking-wider font-semibold border-b border-emerald-950/60">
+                      <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-semibold border-b border-slate-200">
                         <tr>
                           <th className="px-6 py-3.5">Student</th>
                           <th className="px-6 py-3.5">Course</th>
@@ -2026,21 +2045,21 @@ export default function AdminPortalPage() {
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-emerald-950/50">
+                      <tbody className="divide-y divide-slate-200">
                         {leads.slice(0, 5).map((l) => (
                           <tr
                             key={l.id}
-                            className="hover:bg-emerald-950/20 transition-colors"
+                            className="hover:bg-blue-50 transition-colors"
                           >
                             <td className="px-6 py-4">
-                              <div className="font-bold text-white">
+                              <div className="font-bold text-slate-900">
                                 {l.full_name}
                               </div>
-                              <div className="text-xs text-zinc-500">
+                              <div className="text-xs text-slate-500">
                                 {l.phone}
                               </div>
                             </td>
-                            <td className="px-6 py-4 text-zinc-300">
+                            <td className="px-6 py-4 text-slate-700">
                               {l.course_name || "General Inquiry"}
                             </td>
                             <td className="px-6 py-4">
@@ -2065,7 +2084,7 @@ export default function AdminPortalPage() {
                                 )}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-black border border-emerald-500/30 text-xs font-bold transition-all shadow-sm"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-slate-900 border border-blue-200 text-xs font-bold transition-all shadow-sm"
                               >
                                 <Send size={12} />
                                 <span>WhatsApp</span>
@@ -2077,10 +2096,10 @@ export default function AdminPortalPage() {
                           <tr>
                             <td
                               colSpan={4}
-                              className="text-center py-10 text-zinc-500 text-sm"
+                              className="text-center py-10 text-slate-500 text-sm"
                             >
                               <div className="flex flex-col items-center gap-2">
-                                <Users size={28} className="text-zinc-600" />
+                                <Users size={28} className="text-slate-400" />
                                 <div>No student inquiries logged yet.</div>
                                 <Button
                                   variant="outline"
@@ -2112,7 +2131,7 @@ export default function AdminPortalPage() {
                 <div className="relative w-full sm:w-80">
                   <Search
                     size={16}
-                    className="absolute left-3.5 top-3 text-zinc-500"
+                    className="absolute left-3.5 top-3 text-slate-500"
                   />
                   <Input
                     type="text"
@@ -2130,12 +2149,12 @@ export default function AdminPortalPage() {
                     onClick={() => handleRefresh("courses")}
                     disabled={refreshing}
                     title="Refresh courses directly from live database (bypasses cache)"
-                    className="gap-1.5 border-emerald-950 hover:bg-emerald-950/60 text-emerald-300 text-xs font-semibold shrink-0"
+                    className="gap-1.5 border-slate-200 hover:bg-blue-50 text-blue-700 text-xs font-semibold shrink-0"
                   >
                     <RefreshCw
                       size={14}
                       className={
-                        refreshing ? "animate-spin text-emerald-400" : ""
+                        refreshing ? "animate-spin text-blue-700" : ""
                       }
                     />
                     <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
@@ -2144,7 +2163,7 @@ export default function AdminPortalPage() {
                   <select
                     value={courseCategoryFilter}
                     onChange={(e) => setCourseCategoryFilter(e.target.value)}
-                    className="bg-[#070b09] border border-emerald-950/80 text-xs text-zinc-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-500"
+                    className="bg-white border border-slate-200 text-xs text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500"
                   >
                     <option value="all">
                       All Categories ({courses.length})
@@ -2159,7 +2178,7 @@ export default function AdminPortalPage() {
                   <Button
                     size="sm"
                     onClick={openNewCourseModal}
-                    className="gap-1.5 shrink-0 bg-emerald-500 hover:bg-emerald-400 text-black font-bold shadow-md shadow-emerald-500/20"
+                    className="gap-1.5 shrink-0 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md "
                   >
                     <Plus size={16} />
                     <span>Create Course</span>
@@ -2172,9 +2191,9 @@ export default function AdminPortalPage() {
                 {filteredCourses.map((c) => (
                   <Card
                     key={c.id}
-                    className="overflow-hidden flex flex-col hover:border-emerald-500/50 transition-all group"
+                    className="overflow-hidden flex flex-col hover:border-blue-300 transition-all group"
                   >
-                    <div className="h-44 relative bg-black overflow-hidden">
+                    <div className="h-44 relative bg-slate-100 overflow-hidden">
                       <img
                         src={cacheBustUrl(c.image_url || DEFAULT_COURSE_IMG)}
                         alt={c.title_en}
@@ -2185,7 +2204,7 @@ export default function AdminPortalPage() {
                       />
                       <Badge
                         variant="outline"
-                        className="absolute top-3 left-3 bg-black/80 backdrop-blur-md border-zinc-700"
+                        className="absolute top-3 left-3 bg-slate-900/50 backdrop-blur-md border-slate-300"
                       >
                         {c.category_en}
                       </Badge>
@@ -2193,8 +2212,8 @@ export default function AdminPortalPage() {
                         onClick={(e) => toggleCourseStatus(c, e)}
                         className={`absolute top-3 right-3 px-2.5 py-0.5 rounded-full text-xs font-bold transition-all shadow-md ${
                           c.is_active
-                            ? "bg-emerald-500 text-black shadow-emerald-500/25"
-                            : "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                            ? "bg-blue-600 text-white "
+                            : "bg-slate-200 text-slate-500 border border-slate-300"
                         }`}
                         title="Click to toggle Active/Draft"
                       >
@@ -2203,40 +2222,40 @@ export default function AdminPortalPage() {
                     </div>
 
                     <CardContent className="p-5 flex-1 flex flex-col">
-                      <h3 className="font-bold text-white text-base leading-snug">
+                      <h3 className="font-bold text-slate-900 text-base leading-snug">
                         {c.title_en}
                       </h3>
-                      <div className="text-xs text-zinc-400 mt-1 mb-3">
+                      <div className="text-xs text-slate-500 mt-1 mb-3">
                         {c.title_bn}
                       </div>
 
                       <div className="flex flex-wrap gap-1.5 mb-3">
-                        <span className="px-2 py-0.5 rounded-md text-xs bg-[#060a08] text-zinc-300 border border-emerald-950/60">
+                        <span className="px-2 py-0.5 rounded-md text-xs bg-slate-50 text-slate-700 border border-slate-200">
                           ⏱ {c.duration_en}
                         </span>
-                        <span className="px-2 py-0.5 rounded-md text-xs bg-[#060a08] text-zinc-300 border border-emerald-950/60">
+                        <span className="px-2 py-0.5 rounded-md text-xs bg-slate-50 text-slate-700 border border-slate-200">
                           🎯 {c.level_en}
                         </span>
-                        <span className="px-2 py-0.5 rounded-md text-xs bg-[#060a08] text-zinc-300 border border-emerald-950/60">
+                        <span className="px-2 py-0.5 rounded-md text-xs bg-slate-50 text-slate-700 border border-slate-200">
                           👥 {c.seats_en}
                         </span>
                       </div>
 
-                      <div className="text-xs text-zinc-400 mb-4">
-                        <strong className="text-zinc-300">Mentor:</strong>{" "}
+                      <div className="text-xs text-slate-500 mb-4">
+                        <strong className="text-slate-700">Mentor:</strong>{" "}
                         {c.mentor_name}
                       </div>
 
-                      <div className="flex items-baseline gap-2 mt-auto pt-3 border-t border-emerald-950/60">
-                        <span className="text-2xl font-black text-emerald-400">
+                      <div className="flex items-baseline gap-2 mt-auto pt-3 border-t border-slate-200">
+                        <span className="text-2xl font-black text-blue-700">
                           {c.price}
                         </span>
                         {c.discount_price && (
-                          <span className="text-xs text-zinc-500 line-through">
+                          <span className="text-xs text-slate-500 line-through">
                             {c.discount_price}
                           </span>
                         )}
-                        <span className="ml-auto text-xs text-zinc-500">
+                        <span className="ml-auto text-xs text-slate-500">
                           {c.schedule_en}
                         </span>
                       </div>
@@ -2246,7 +2265,7 @@ export default function AdminPortalPage() {
                           variant="secondary"
                           size="sm"
                           onClick={() => openEditCourseModal(c)}
-                          className="flex-1 gap-1.5 border border-emerald-500/20 text-emerald-300 hover:text-black hover:bg-emerald-400 hover:font-bold"
+                          className="flex-1 gap-1.5 border border-blue-200 text-blue-700 hover:text-slate-900 hover:bg-blue-700 hover:font-bold"
                         >
                           <Edit size={14} />
                           <span>Edit & Save Fee</span>
@@ -2297,12 +2316,12 @@ export default function AdminPortalPage() {
                   onClick={() => handleRefresh("sections")}
                   disabled={refreshing}
                   title="Refresh sections and texts directly from live database"
-                  className="gap-1.5 border-emerald-950 hover:bg-emerald-950/60 text-emerald-300 text-xs font-semibold shrink-0"
+                  className="gap-1.5 border-slate-200 hover:bg-blue-50 text-blue-700 text-xs font-semibold shrink-0"
                 >
                   <RefreshCw
                     size={14}
                     className={
-                      refreshing ? "animate-spin text-emerald-400" : ""
+                      refreshing ? "animate-spin text-blue-700" : ""
                     }
                   />
                   <span>
@@ -2324,7 +2343,7 @@ export default function AdminPortalPage() {
                     <Button
                       onClick={() => handleSaveSection("hero", sections.hero)}
                       disabled={savingKey === "hero"}
-                      className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                     >
                       <Save size={16} />
                       <span>
@@ -2433,7 +2452,7 @@ export default function AdminPortalPage() {
                     <Button
                       onClick={() => handleSaveSection("hero", sections.hero)}
                       disabled={savingKey === "hero"}
-                      className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                     >
                       <Save size={16} />
                       <span>
@@ -2459,7 +2478,7 @@ export default function AdminPortalPage() {
                     <Button
                       onClick={() => handleSaveSection("story", sections.story)}
                       disabled={savingKey === "story"}
-                      className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                     >
                       <Save size={16} />
                       <span>
@@ -2555,7 +2574,7 @@ export default function AdminPortalPage() {
                     <Button
                       onClick={() => handleSaveSection("story", sections.story)}
                       disabled={savingKey === "story"}
-                      className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                     >
                       <Save size={16} />
                       <span>
@@ -2581,7 +2600,7 @@ export default function AdminPortalPage() {
                     <Button
                       onClick={() => handleSaveSection("why", sections.why)}
                       disabled={savingKey === "why"}
-                      className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                     >
                       <Save size={16} />
                       <span>
@@ -2635,7 +2654,7 @@ export default function AdminPortalPage() {
                     <Button
                       onClick={() => handleSaveSection("why", sections.why)}
                       disabled={savingKey === "why"}
-                      className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                     >
                       <Save size={16} />
                       <span>
@@ -2672,7 +2691,7 @@ export default function AdminPortalPage() {
                           handleSaveSection("voices", sections.voices)
                         }
                         disabled={savingKey === "voices"}
-                        className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                        className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                       >
                         <Save size={16} />
                         <span>
@@ -2688,10 +2707,10 @@ export default function AdminPortalPage() {
                       (t, idx) => (
                         <div
                           key={idx}
-                          className="p-5 rounded-2xl bg-[#060a08] border border-emerald-950/70 space-y-3 relative group"
+                          className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 relative group"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-emerald-400">
+                            <span className="text-xs font-bold text-blue-700">
                               Testimonial #{idx + 1}
                             </span>
                             <Button
@@ -2793,7 +2812,7 @@ export default function AdminPortalPage() {
                     )}
                     {(sections.voices?.data_en?.testimonials || []).length ===
                       0 && (
-                      <div className="text-center py-8 text-zinc-500 text-sm">
+                      <div className="text-center py-8 text-slate-500 text-sm">
                         No testimonials added yet. Click &quot;Add
                         Testimonial&quot; above to create one.
                       </div>
@@ -2805,7 +2824,7 @@ export default function AdminPortalPage() {
                         handleSaveSection("voices", sections.voices)
                       }
                       disabled={savingKey === "voices"}
-                      className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                     >
                       <Save size={16} />
                       <span>
@@ -2842,7 +2861,7 @@ export default function AdminPortalPage() {
                       <Button
                         onClick={() => handleSaveSection("faq", sections.faq)}
                         disabled={savingKey === "faq"}
-                        className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                        className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                       >
                         <Save size={16} />
                         <span>
@@ -2855,10 +2874,10 @@ export default function AdminPortalPage() {
                     {(sections.faq?.data_en?.items || []).map((faq, idx) => (
                       <div
                         key={idx}
-                        className="p-5 rounded-2xl bg-[#060a08] border border-emerald-950/70 space-y-3 relative"
+                        className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 relative"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-emerald-400">
+                          <span className="text-xs font-bold text-blue-700">
                             FAQ Question #{idx + 1}
                           </span>
                           <Button
@@ -2930,7 +2949,7 @@ export default function AdminPortalPage() {
                     <Button
                       onClick={() => handleSaveSection("faq", sections.faq)}
                       disabled={savingKey === "faq"}
-                      className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                     >
                       <Save size={16} />
                       <span>
@@ -2954,7 +2973,7 @@ export default function AdminPortalPage() {
                     <Button
                       onClick={() => handleSaveSection("cta", sections.cta)}
                       disabled={savingKey === "cta"}
-                      className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                     >
                       <Save size={16} />
                       <span>
@@ -3008,7 +3027,7 @@ export default function AdminPortalPage() {
                     <Button
                       onClick={() => handleSaveSection("cta", sections.cta)}
                       disabled={savingKey === "cta"}
-                      className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                     >
                       <Save size={16} />
                       <span>
@@ -3043,12 +3062,12 @@ export default function AdminPortalPage() {
                       onClick={() => handleRefresh("contact")}
                       disabled={refreshing}
                       title="Reload settings from database"
-                      className="gap-1.5 border-emerald-950 hover:bg-emerald-950/60 text-emerald-300 text-xs font-semibold"
+                      className="gap-1.5 border-slate-200 hover:bg-blue-50 text-blue-700 text-xs font-semibold"
                     >
                       <RefreshCw
                         size={14}
                         className={
-                          refreshing ? "animate-spin text-emerald-400" : ""
+                          refreshing ? "animate-spin text-blue-700" : ""
                         }
                       />
                       <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
@@ -3056,7 +3075,7 @@ export default function AdminPortalPage() {
                     <Button
                       type="submit"
                       disabled={savingKey === "contact"}
-                      className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                     >
                       <Save size={16} />
                       <span>
@@ -3146,12 +3165,12 @@ export default function AdminPortalPage() {
 
                   {/* Live WhatsApp Test Button */}
                   {settings.whatsapp_number && (
-                    <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-500/30 flex items-center justify-between flex-wrap gap-3">
+                    <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-between flex-wrap gap-3">
                       <div>
-                        <div className="font-bold text-emerald-400 text-sm">
+                        <div className="font-bold text-blue-700 text-sm">
                           Live WhatsApp Link Preview
                         </div>
-                        <div className="text-xs text-zinc-400 font-mono mt-0.5">
+                        <div className="text-xs text-slate-500 font-mono mt-0.5">
                           https://wa.me/
                           {settings.whatsapp_number.replace(/[^0-9]/g, "")}
                           ?text=
@@ -3162,7 +3181,7 @@ export default function AdminPortalPage() {
                         href={`https://wa.me/${settings.whatsapp_number.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(settings.whatsapp_message || "")}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs shadow-md shadow-emerald-500/25 transition-all"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md  transition-all"
                       >
                         <Send size={13} />
                         <span>Test WhatsApp Link</span>
@@ -3247,7 +3266,7 @@ export default function AdminPortalPage() {
                   <Button
                     type="submit"
                     disabled={savingKey === "contact"}
-                    className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                    className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                   >
                     <Save size={16} />
                     <span>
@@ -3266,10 +3285,10 @@ export default function AdminPortalPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-base font-bold text-white">
+                  <h2 className="text-base font-bold text-slate-900">
                     Academy Faculty Mentors
                   </h2>
-                  <p className="text-xs text-zinc-400 mt-1">
+                  <p className="text-xs text-slate-500 mt-1">
                     Instructor profiles, specialties and designations
                   </p>
                 </div>
@@ -3280,12 +3299,12 @@ export default function AdminPortalPage() {
                     onClick={() => handleRefresh("mentors")}
                     disabled={refreshing}
                     title="Refresh mentors from database"
-                    className="gap-1.5 border-emerald-950 hover:bg-emerald-950/60 text-emerald-300 text-xs font-semibold shrink-0"
+                    className="gap-1.5 border-slate-200 hover:bg-blue-50 text-blue-700 text-xs font-semibold shrink-0"
                   >
                     <RefreshCw
                       size={14}
                       className={
-                        refreshing ? "animate-spin text-emerald-400" : ""
+                        refreshing ? "animate-spin text-blue-700" : ""
                       }
                     />
                     <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
@@ -3306,7 +3325,7 @@ export default function AdminPortalPage() {
                       });
                       setIsMentorModalOpen(true);
                     }}
-                    className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold shadow-md shadow-emerald-500/20"
+                    className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md "
                   >
                     <Plus size={16} />
                     <span>Add Faculty Mentor</span>
@@ -3318,26 +3337,26 @@ export default function AdminPortalPage() {
                 {mentors.map((m) => (
                   <Card
                     key={m.id}
-                    className="p-6 text-center flex flex-col items-center hover:border-emerald-500/40 transition-colors"
+                    className="p-6 text-center flex flex-col items-center hover:border-blue-300 transition-colors"
                   >
                     <img
                       src={cacheBustUrl(m.avatar_url || DEFAULT_AVATAR_IMG)}
                       alt={m.name_en}
-                      className="w-20 h-20 rounded-full object-cover border-2 border-emerald-400 mb-4 shadow-[0_0_15px_rgba(74,222,128,0.25)]"
+                      className="w-20 h-20 rounded-full object-cover border-2 border-blue-500 mb-4 shadow-sm"
                       onError={(e) => {
                         e.currentTarget.src = DEFAULT_AVATAR_IMG;
                       }}
                     />
-                    <h3 className="font-bold text-white text-base">
+                    <h3 className="font-bold text-slate-900 text-base">
                       {m.name_en}
                     </h3>
-                    <div className="text-xs text-zinc-400 mt-0.5">
+                    <div className="text-xs text-slate-500 mt-0.5">
                       {m.name_bn}
                     </div>
-                    <div className="text-xs font-semibold text-emerald-400 mt-2">
+                    <div className="text-xs font-semibold text-blue-700 mt-2">
                       {m.designation_en}
                     </div>
-                    <div className="text-xs text-zinc-400 mt-1 mb-4">
+                    <div className="text-xs text-slate-500 mt-1 mb-4">
                       {m.specialty_en}
                     </div>
                     <Badge variant="outline" className="mb-4 text-[10px]">
@@ -3352,7 +3371,7 @@ export default function AdminPortalPage() {
                           setMentorForm({ ...m });
                           setIsMentorModalOpen(true);
                         }}
-                        className="flex-1 border-emerald-500/20 text-emerald-300 hover:bg-emerald-500 hover:text-black font-semibold"
+                        className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-600 hover:text-slate-900 font-semibold"
                       >
                         <Edit size={14} />
                         <span>Edit</span>
@@ -3380,10 +3399,10 @@ export default function AdminPortalPage() {
               {/* Header and Actions */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-base font-bold text-white">
+                  <h2 className="text-base font-bold text-slate-900">
                     Student Leads & Inquiries CRM
                   </h2>
-                  <p className="text-xs text-zinc-400 mt-1">
+                  <p className="text-xs text-slate-500 mt-1">
                     Manage enrollment applications, chat on WhatsApp & record
                     follow-up notes
                   </p>
@@ -3395,12 +3414,12 @@ export default function AdminPortalPage() {
                     onClick={() => handleRefresh("leads")}
                     disabled={refreshing}
                     title="Check for new student inquiry submissions"
-                    className="gap-1.5 border-emerald-950 hover:bg-emerald-950/60 text-emerald-300 text-xs font-semibold"
+                    className="gap-1.5 border-slate-200 hover:bg-blue-50 text-blue-700 text-xs font-semibold"
                   >
                     <RefreshCw
                       size={14}
                       className={
-                        refreshing ? "animate-spin text-emerald-400" : ""
+                        refreshing ? "animate-spin text-blue-700" : ""
                       }
                     />
                     <span>{refreshing ? "Syncing..." : "Refresh Leads"}</span>
@@ -3417,7 +3436,7 @@ export default function AdminPortalPage() {
                   <Button
                     size="sm"
                     onClick={() => setIsAddLeadModalOpen(true)}
-                    className="gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold shadow-md shadow-emerald-500/20"
+                    className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md "
                   >
                     <Plus size={15} />
                     <span>Log Inquiry</span>
@@ -3430,7 +3449,7 @@ export default function AdminPortalPage() {
                 <div className="relative w-full sm:w-72">
                   <Search
                     size={15}
-                    className="absolute left-3.5 top-3 text-zinc-500"
+                    className="absolute left-3.5 top-3 text-slate-500"
                   />
                   <Input
                     type="text"
@@ -3445,7 +3464,7 @@ export default function AdminPortalPage() {
                   <select
                     value={leadStatusFilter}
                     onChange={(e) => setLeadStatusFilter(e.target.value)}
-                    className="bg-[#070b09] border border-emerald-950/80 text-xs text-zinc-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-500"
+                    className="bg-white border border-slate-200 text-xs text-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500"
                   >
                     <option value="">All Statuses ({leads.length})</option>
                     <option value="new">
@@ -3472,7 +3491,7 @@ export default function AdminPortalPage() {
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                      <thead className="bg-[#060a08] text-zinc-400 text-xs uppercase tracking-wider font-semibold border-b border-emerald-950/60">
+                      <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-semibold border-b border-slate-200">
                         <tr>
                           <th className="px-6 py-3.5">Applicant</th>
                           <th className="px-6 py-3.5">Contact</th>
@@ -3482,7 +3501,7 @@ export default function AdminPortalPage() {
                           <th className="px-6 py-3.5 text-right">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-emerald-950/50">
+                      <tbody className="divide-y divide-slate-200">
                         {filteredLeads.map((lead) => {
                           const cleanNum = (lead.phone || "").replace(
                             /[^0-9]/g,
@@ -3495,21 +3514,21 @@ export default function AdminPortalPage() {
                           return (
                             <tr
                               key={lead.id}
-                              className="hover:bg-emerald-950/20 transition-colors"
+                              className="hover:bg-blue-50 transition-colors"
                             >
                               <td className="px-6 py-4">
-                                <div className="font-bold text-white">
+                                <div className="font-bold text-slate-900">
                                   {lead.full_name}
                                 </div>
-                                <div className="text-xs text-zinc-500">
+                                <div className="text-xs text-slate-500">
                                   {new Date(lead.created_at).toLocaleString()}
                                 </div>
                               </td>
                               <td className="px-6 py-4">
-                                <div className="font-medium text-zinc-200">
+                                <div className="font-medium text-slate-800">
                                   {lead.phone}
                                 </div>
-                                <div className="text-xs text-zinc-400">
+                                <div className="text-xs text-slate-500">
                                   {lead.email || "—"}
                                 </div>
                               </td>
@@ -3527,7 +3546,7 @@ export default function AdminPortalPage() {
                                       e.target.value,
                                     )
                                   }
-                                  className="bg-black border border-emerald-950/80 text-xs text-zinc-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 font-semibold"
+                                  className="bg-slate-100 border border-slate-200 text-xs text-slate-800 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-500 font-semibold"
                                 >
                                   <option value="new">New</option>
                                   <option value="contacted">Contacted</option>
@@ -3537,7 +3556,7 @@ export default function AdminPortalPage() {
                               </td>
                               <td className="px-6 py-4">
                                 <div
-                                  className="text-xs text-zinc-400 max-w-[200px] truncate cursor-pointer hover:text-emerald-300"
+                                  className="text-xs text-slate-500 max-w-[200px] truncate cursor-pointer hover:text-blue-800"
                                   onClick={() => openLeadNotesDialog(lead)}
                                   title="Click to view/edit notes"
                                 >
@@ -3550,7 +3569,7 @@ export default function AdminPortalPage() {
                                     href={waUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="bg-emerald-500/15 hover:bg-emerald-500 hover:text-black text-emerald-400 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all border border-emerald-500/30"
+                                    className="bg-blue-50 hover:bg-blue-600 hover:text-slate-900 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all border border-blue-200"
                                   >
                                     <Send size={12} />
                                     <span>WhatsApp</span>
@@ -3582,7 +3601,7 @@ export default function AdminPortalPage() {
                           <tr>
                             <td
                               colSpan={6}
-                              className="text-center py-12 text-zinc-500 text-sm"
+                              className="text-center py-12 text-slate-500 text-sm"
                             >
                               No inquiries found matching your filters.
                             </td>
@@ -3603,10 +3622,10 @@ export default function AdminPortalPage() {
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-base font-bold text-white">
+                  <h2 className="text-base font-bold text-slate-900">
                     Supabase Storage Bucket: &quot;onushilon&quot;
                   </h2>
-                  <p className="text-xs text-zinc-400 mt-1">
+                  <p className="text-xs text-slate-500 mt-1">
                     {media.length} files currently stored and publicly served
                     from cloud CDN
                   </p>
@@ -3618,12 +3637,12 @@ export default function AdminPortalPage() {
                     onClick={() => handleRefresh("media")}
                     disabled={refreshing}
                     title="Refresh media files directly from Supabase storage bucket"
-                    className="gap-1.5 border-emerald-950 hover:bg-emerald-950/60 text-emerald-300 text-xs font-semibold shrink-0"
+                    className="gap-1.5 border-slate-200 hover:bg-blue-50 text-blue-700 text-xs font-semibold shrink-0"
                   >
                     <RefreshCw
                       size={14}
                       className={
-                        refreshing ? "animate-spin text-emerald-400" : ""
+                        refreshing ? "animate-spin text-blue-700" : ""
                       }
                     />
                     <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
@@ -3631,7 +3650,7 @@ export default function AdminPortalPage() {
                   <div className="relative w-full sm:w-64">
                     <Search
                       size={15}
-                      className="absolute left-3 top-2.5 text-zinc-500"
+                      className="absolute left-3 top-2.5 text-slate-500"
                     />
                     <Input
                       type="text"
@@ -3641,22 +3660,27 @@ export default function AdminPortalPage() {
                       className="pl-9 h-9"
                     />
                   </div>
-                  <label className="bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-black text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all shadow-md shadow-emerald-500/20 shrink-0">
+                  <label className={`bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-md  shrink-0 ${savingKey === "general-img" ? "opacity-60 pointer-events-none" : "cursor-pointer"}`}>
                     <Upload size={14} />
-                    <span>Upload New</span>
+                    <span>{savingKey === "general-img" ? "Uploading..." : "Upload New"}</span>
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleGeneralMediaUpload}
+                      disabled={savingKey === "general-img"}
                       className="hidden"
                     />
                   </label>
                 </div>
               </div>
 
+              {savingKey === "general-img" && (
+                <UploadStatus preview={uploadPreview} progress={uploadProgress} />
+              )}
+
               {/* Folder Filter Tabs */}
               <TabsList>
-                {["all", "courses", "moments", "photos", "general"].map(
+                {["all", "courses", "mentors", "moments", "photos", "general"].map(
                   (folder) => (
                     <TabsTrigger
                       key={folder}
@@ -3675,10 +3699,10 @@ export default function AdminPortalPage() {
                 {filteredMedia.map((m, idx) => (
                   <Card
                     key={idx}
-                    className="overflow-hidden group hover:border-emerald-500/50 transition-all flex flex-col"
+                    className="overflow-hidden group hover:border-blue-300 transition-all flex flex-col"
                   >
                     <div
-                      className="h-32 bg-black overflow-hidden relative flex items-center justify-center cursor-pointer"
+                      className="h-32 bg-slate-100 overflow-hidden relative flex items-center justify-center cursor-pointer"
                       onClick={() => setPreviewMedia(m)}
                     >
                       <img
@@ -3689,19 +3713,19 @@ export default function AdminPortalPage() {
                           e.currentTarget.style.display = "none";
                         }}
                       />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Eye size={20} className="text-white drop-shadow-md" />
+                      <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Eye size={20} className="text-slate-900 drop-shadow-md" />
                       </div>
                     </div>
                     <div className="p-3 flex-1 flex flex-col justify-between">
                       <div>
                         <div
-                          className="text-xs font-bold text-white truncate"
+                          className="text-xs font-bold text-slate-900 truncate"
                           title={m.name}
                         >
                           {m.name}
                         </div>
-                        <div className="text-[10px] text-zinc-500 mt-0.5">
+                        <div className="text-[10px] text-slate-500 mt-0.5">
                           {m.size
                             ? `${(m.size / 1024).toFixed(1)} KB`
                             : "Supabase Cloud Asset"}
@@ -3712,10 +3736,10 @@ export default function AdminPortalPage() {
                           variant="secondary"
                           size="sm"
                           onClick={() => copyToClipboard(m.publicUrl)}
-                          className="flex-1 h-7 text-[11px] gap-1 font-semibold border-emerald-950 hover:bg-emerald-500 hover:text-black"
+                          className="flex-1 h-7 text-[11px] gap-1 font-semibold border-slate-200 hover:bg-blue-600 hover:text-slate-900"
                         >
                           {copiedUrl === m.publicUrl ? (
-                            <Check size={12} className="text-emerald-400" />
+                            <Check size={12} className="text-blue-700" />
                           ) : (
                             <Copy size={12} />
                           )}
@@ -3731,7 +3755,7 @@ export default function AdminPortalPage() {
                             handleDeleteMedia(m);
                           }}
                           title="Delete image & invalidate cache"
-                          className="h-7 w-7 text-zinc-500 hover:text-rose-400 hover:bg-rose-950/30 border border-zinc-800/60 shrink-0"
+                          className="h-7 w-7 text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 shrink-0"
                         >
                           <Trash2 size={12} />
                         </Button>
@@ -3742,8 +3766,8 @@ export default function AdminPortalPage() {
               </div>
 
               {filteredMedia.length === 0 && (
-                <div className="text-center py-16 text-zinc-500">
-                  <HardDrive size={36} className="mx-auto text-zinc-600 mb-2" />
+                <div className="text-center py-16 text-slate-500">
+                  <HardDrive size={36} className="mx-auto text-slate-400 mb-2" />
                   <p className="text-sm">
                     No cloud files found in this category.
                   </p>
@@ -3776,7 +3800,7 @@ export default function AdminPortalPage() {
                 size="sm"
                 onClick={handleSaveCourse}
                 disabled={savingKey === "course"}
-                className="gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold"
               >
                 <Save size={14} />
                 <span>
@@ -3788,7 +3812,7 @@ export default function AdminPortalPage() {
           </DialogHeader>
 
           {/* Sub-Tabs */}
-          <div className="px-6 pt-3 pb-0 border-b border-emerald-950/60 bg-[#060907]/60">
+          <div className="px-6 pt-3 pb-0 border-b border-slate-200 bg-slate-50">
             <TabsList className="bg-transparent border-0 p-0 gap-2">
               <TabsTrigger
                 active={courseModalTab === "basic"}
@@ -3866,7 +3890,7 @@ export default function AdminPortalPage() {
                             category_en: e.target.value,
                           })
                         }
-                        className="w-full bg-[#060a08] border border-zinc-800 rounded-xl px-3.5 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:border-blue-500"
                       >
                         <option value="Robotics & Tech">Robotics & Tech</option>
                         <option value="Arts & Sports">Arts & Sports</option>
@@ -3943,11 +3967,11 @@ export default function AdminPortalPage() {
                           is_active: e.target.checked,
                         })
                       }
-                      className="w-4 h-4 rounded text-emerald-500 accent-emerald-500 cursor-pointer"
+                      className="w-4 h-4 rounded text-blue-600 accent-emerald-500 cursor-pointer"
                     />
                     <label
                       htmlFor="course-active-box"
-                      className="text-sm font-medium text-zinc-300 cursor-pointer"
+                      className="text-sm font-medium text-slate-700 cursor-pointer"
                     >
                       Publish on website (Active Batch Status)
                     </label>
@@ -4084,7 +4108,7 @@ export default function AdminPortalPage() {
                             setNewTopicInput("");
                           }
                         }}
-                        className="bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-black font-semibold"
+                        className="bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-slate-900 font-semibold"
                       >
                         Add Topic
                       </Button>
@@ -4094,11 +4118,11 @@ export default function AdminPortalPage() {
                   {topicsEn.length > 0 && (
                     <div className="space-y-2">
                       <Label>Current Topics ({topicsEn.length})</Label>
-                      <div className="flex flex-wrap gap-2 p-3 rounded-xl bg-[#060a08] border border-emerald-950/70">
+                      <div className="flex flex-wrap gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200">
                         {topicsEn.map((top, idx) => (
                           <span
                             key={idx}
-                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs bg-emerald-950/40 border border-emerald-500/30 text-emerald-300"
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs bg-blue-50 border border-blue-200 text-blue-700"
                           >
                             <span>{top}</span>
                             <button
@@ -4108,7 +4132,7 @@ export default function AdminPortalPage() {
                                   topicsEn.filter((_, i) => i !== idx),
                                 )
                               }
-                              className="text-zinc-400 hover:text-rose-400"
+                              className="text-slate-500 hover:text-rose-600"
                             >
                               <X size={12} />
                             </button>
@@ -4154,31 +4178,36 @@ export default function AdminPortalPage() {
               {/* TAB 4: IMAGE & CLOUD MEDIA */}
               {courseModalTab === "media" && (
                 <div className="space-y-4">
-                  <div className="p-5 rounded-2xl border border-dashed border-emerald-950/80 bg-[#060a08] text-center">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-950/60 text-emerald-400 flex items-center justify-center mx-auto mb-3 shadow-inner">
+                  <div className="p-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-center">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center mx-auto mb-3 shadow-inner">
                       <Upload size={22} />
                     </div>
-                    <div className="text-sm font-semibold text-white">
+                    <div className="text-sm font-semibold text-slate-900">
                       Upload Thumbnail to Supabase Bucket
                     </div>
-                    <p className="text-xs text-zinc-400 mt-1 mb-4">
+                    <p className="text-xs text-slate-500 mt-1 mb-4">
                       Direct cloud upload into &quot;onushilon&quot; storage
                       bucket
                     </p>
-                    <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold cursor-pointer shadow-md shadow-emerald-500/20 transition-all">
+                    <label className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md  transition-all ${savingKey === "course-img" ? "opacity-60 pointer-events-none" : "cursor-pointer"}`}>
                       <span>
                         {savingKey === "course-img"
-                          ? "Uploading to Cloud..."
+                          ? "Uploading..."
                           : "Browse Image File"}
                       </span>
                       <input
                         type="file"
                         accept="image/*"
                         onChange={handleCourseImageUpload}
+                        disabled={savingKey === "course-img"}
                         className="hidden"
                       />
                     </label>
                   </div>
+
+                  {savingKey === "course-img" && (
+                    <UploadStatus preview={uploadPreview} progress={uploadProgress} />
+                  )}
 
                   <div>
                     <Label>Direct Image Public URL</Label>
@@ -4195,20 +4224,20 @@ export default function AdminPortalPage() {
                   </div>
 
                   {courseForm.image_url && (
-                    <div className="flex items-center gap-4 p-3 rounded-xl bg-[#060a08] border border-emerald-950/70">
+                    <div className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 border border-slate-200">
                       <img
                         src={cacheBustUrl(courseForm.image_url)}
                         alt="Preview"
-                        className="w-20 h-14 object-cover rounded-lg border border-emerald-950"
+                        className="w-20 h-14 object-cover rounded-lg border border-slate-200"
                         onError={(e) => {
                           e.currentTarget.src = DEFAULT_COURSE_IMG;
                         }}
                       />
                       <div className="flex-1 truncate">
-                        <div className="text-xs font-semibold text-emerald-400">
+                        <div className="text-xs font-semibold text-blue-700">
                           Current Thumbnail
                         </div>
-                        <div className="text-[11px] text-zinc-400 font-mono truncate">
+                        <div className="text-[11px] text-slate-500 font-mono truncate">
                           {courseForm.image_url}
                         </div>
                       </div>
@@ -4229,7 +4258,7 @@ export default function AdminPortalPage() {
               <Button
                 type="submit"
                 disabled={savingKey === "course"}
-                className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
               >
                 <Save size={16} />
                 <span>
@@ -4289,7 +4318,7 @@ export default function AdminPortalPage() {
                   onChange={(e) =>
                     setMentorForm({ ...mentorForm, category: e.target.value })
                   }
-                  className="w-full bg-[#060a08] border border-zinc-800 rounded-xl px-3.5 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:border-blue-500"
                 >
                   <option value="Robotics & Tech">Robotics & Tech</option>
                   <option value="Arts & Sports">Arts & Sports</option>
@@ -4331,19 +4360,19 @@ export default function AdminPortalPage() {
               </div>
 
               {/* Avatar Upload */}
-              <div className="flex items-center gap-4 p-3 rounded-xl bg-[#060a08] border border-emerald-950/70">
+              <div className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 border border-slate-200">
                 <img
                   src={cacheBustUrl(
                     mentorForm.avatar_url || DEFAULT_AVATAR_IMG,
                   )}
                   alt="Avatar"
-                  className="w-14 h-14 rounded-full object-cover border-2 border-emerald-400"
+                  className="w-14 h-14 rounded-full object-cover border-2 border-blue-500"
                   onError={(e) => {
                     e.currentTarget.src = DEFAULT_AVATAR_IMG;
                   }}
                 />
                 <div className="flex-1">
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-black border border-emerald-500/30 text-xs font-bold cursor-pointer transition-all">
+                  <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-slate-900 border border-blue-200 text-xs font-bold transition-all ${savingKey === "mentor-img" ? "opacity-60 pointer-events-none" : "cursor-pointer"}`}>
                     <Upload size={13} />
                     <span>
                       {savingKey === "mentor-img"
@@ -4354,10 +4383,16 @@ export default function AdminPortalPage() {
                       type="file"
                       accept="image/*"
                       onChange={handleMentorAvatarUpload}
+                      disabled={savingKey === "mentor-img"}
                       className="hidden"
                     />
                   </label>
-                  <div className="text-[10px] text-zinc-400 mt-1 truncate max-w-[240px] font-mono">
+                  {savingKey === "mentor-img" && (
+                    <div className="mt-2">
+                      <UploadStatus preview={uploadPreview} progress={uploadProgress} label="Uploading avatar" />
+                    </div>
+                  )}
+                  <div className="text-[10px] text-slate-500 mt-1 truncate max-w-[240px] font-mono">
                     {mentorForm.avatar_url}
                   </div>
                 </div>
@@ -4375,7 +4410,7 @@ export default function AdminPortalPage() {
               <Button
                 type="submit"
                 disabled={savingKey === "mentor"}
-                className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
               >
                 <Save size={16} />
                 <span>
@@ -4449,7 +4484,7 @@ export default function AdminPortalPage() {
                     course_name: e.target.value,
                   })
                 }
-                className="w-full bg-[#060a08] border border-zinc-800 rounded-xl px-3.5 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:border-blue-500"
               >
                 {courses.map((c) => (
                   <option key={c.id} value={c.title_en}>
@@ -4482,7 +4517,7 @@ export default function AdminPortalPage() {
               </Button>
               <Button
                 type="submit"
-                className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
               >
                 Save Inquiry
               </Button>
@@ -4512,14 +4547,14 @@ export default function AdminPortalPage() {
 
           {leadNotesModal.lead && (
             <div className="p-6 space-y-4">
-              <div className="p-3.5 rounded-xl bg-[#060a08] border border-emerald-950/70 text-xs space-y-1">
-                <div className="font-bold text-white text-sm">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+                <div className="font-bold text-slate-900 text-sm">
                   {leadNotesModal.lead.full_name}
                 </div>
-                <div className="text-zinc-400">
+                <div className="text-slate-500">
                   Phone: {leadNotesModal.lead.phone}
                 </div>
-                <div className="text-emerald-400 font-semibold">
+                <div className="text-blue-700 font-semibold">
                   Course: {leadNotesModal.lead.course_name || "General"}
                 </div>
               </div>
@@ -4553,7 +4588,7 @@ export default function AdminPortalPage() {
             <Button
               onClick={handleSaveLeadNotes}
               disabled={leadNotesModal.loading}
-              className="gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold"
+              className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
             >
               <Save size={16} />
               <span>{leadNotesModal.loading ? "Saving..." : "Save Notes"}</span>
@@ -4581,7 +4616,7 @@ export default function AdminPortalPage() {
               <DialogClose onClick={() => setPreviewMedia(null)} />
             </DialogHeader>
             <div className="p-6 flex flex-col items-center">
-              <div className="max-h-[60vh] overflow-hidden rounded-xl border border-emerald-950/80 bg-black flex items-center justify-center">
+              <div className="max-h-[60vh] overflow-hidden rounded-xl border border-slate-200 bg-slate-100 flex items-center justify-center">
                 <img
                   src={cacheBustUrl(previewMedia.publicUrl)}
                   alt={previewMedia.name}
@@ -4589,11 +4624,11 @@ export default function AdminPortalPage() {
                 />
               </div>
               <div className="w-full mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="text-xs text-zinc-400 font-mono truncate max-w-full sm:max-w-[280px]">
+                <div className="text-xs text-slate-500 font-mono truncate max-w-full sm:max-w-[280px]">
                   {previewMedia.publicUrl}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <label className="bg-zinc-900 border border-emerald-950 hover:border-emerald-500/50 hover:text-emerald-300 text-zinc-300 text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all shadow-sm">
+                  <label className="bg-slate-100 border border-slate-200 hover:border-blue-300 hover:text-blue-800 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all shadow-sm">
                     <Upload size={13} />
                     <span>Replace Image</span>
                     <input
@@ -4606,7 +4641,7 @@ export default function AdminPortalPage() {
                   <Button
                     size="sm"
                     onClick={() => copyToClipboard(previewMedia.publicUrl)}
-                    className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold shrink-0 text-xs gap-1"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold shrink-0 text-xs gap-1"
                   >
                     <Copy size={13} />
                     <span>Copy URL</span>
@@ -4615,7 +4650,7 @@ export default function AdminPortalPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleDeleteMedia(previewMedia)}
-                    className="border-rose-900/50 text-rose-400 hover:bg-rose-950/30 hover:border-rose-700 text-xs shrink-0 gap-1"
+                    className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-200 text-xs shrink-0 gap-1"
                   >
                     <Trash2 size={13} />
                     <span>Delete</span>
@@ -4645,16 +4680,16 @@ export default function AdminPortalPage() {
           FLOATING TOAST NOTIFICATION
          =================================================================== */}
       {toast && (
-        <div className="fixed bottom-6 right-6 px-4 py-3 bg-[#0a0f0d] border border-emerald-500/40 rounded-2xl text-white shadow-[0_0_30px_rgba(0,0,0,0.85)] flex items-center gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="fixed bottom-6 right-6 px-4 py-3 bg-white border border-blue-200 rounded-2xl text-slate-900 shadow-sm flex items-center gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
           {toast.type === "error" ? (
-            <AlertCircle size={18} className="text-rose-400 shrink-0" />
+            <AlertCircle size={18} className="text-rose-600 shrink-0" />
           ) : (
-            <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
+            <CheckCircle2 size={18} className="text-blue-700 shrink-0" />
           )}
           <span className="text-sm font-medium">{toast.message}</span>
           <button
             onClick={() => setToast(null)}
-            className="ml-2 text-zinc-500 hover:text-white"
+            className="ml-2 text-slate-500 hover:text-slate-900"
           >
             <X size={14} />
           </button>
