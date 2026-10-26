@@ -51,6 +51,10 @@ import {
   HelpCircle,
   MessageCircle,
   Zap,
+  Monitor,
+  Smartphone,
+  RotateCcw,
+  Type,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -185,6 +189,11 @@ export default function AdminPortalPage() {
 
   // Section Sub-Tab
   const [activeSectionKey, setActiveSectionKey] = useState("hero");
+
+  // Hero Section Customizer State (Language editor sub-tab, preview device, preview lang)
+  const [heroEditLang, setHeroEditLang] = useState("en"); // "en" | "bn"
+  const [heroPreviewLang, setHeroPreviewLang] = useState("en"); // "en" | "bn"
+  const [heroPreviewDevice, setHeroPreviewDevice] = useState("desktop"); // "desktop" | "mobile"
 
   // Mentor Modal State
   const [isMentorModalOpen, setIsMentorModalOpen] = useState(false);
@@ -2330,140 +2339,624 @@ export default function AdminPortalPage() {
                 </Button>
               </div>
 
-              {/* HERO SECTION EDITOR */}
-              {activeSectionKey === "hero" && (
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle>Hero Section Headline & Subtitle</CardTitle>
-                      <CardDescription>
-                        Edit rotating typography and introductory mission text
-                      </CardDescription>
-                    </div>
-                    <Button
-                      onClick={() => handleSaveSection("hero", sections.hero)}
-                      disabled={savingKey === "hero"}
-                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                    >
-                      <Save size={16} />
-                      <span>
-                        {savingKey === "hero"
-                          ? "Saving..."
-                          : "Save Hero Section"}
-                      </span>
-                    </Button>
-                  </CardHeader>
-                  <CardContent className="space-y-5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div>
-                        <Label>Headline Words (EN, comma-separated)</Label>
-                        <Input
-                          type="text"
-                          value={
-                            sections.hero?.data_en?.headline_words?.join(
-                              ", ",
-                            ) || ""
-                          }
-                          onChange={(e) =>
-                            setSections((prev) => ({
-                              ...prev,
-                              hero: {
-                                ...prev.hero,
-                                data_en: {
-                                  ...prev.hero?.data_en,
-                                  headline_words: e.target.value
-                                    .split(",")
-                                    .map((s) => s.trim()),
-                                },
-                              },
-                            }))
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label>Headline Words (BN, comma-separated)</Label>
-                        <Input
-                          type="text"
-                          value={
-                            sections.hero?.data_bn?.headline_words?.join(
-                              ", ",
-                            ) || ""
-                          }
-                          onChange={(e) =>
-                            setSections((prev) => ({
-                              ...prev,
-                              hero: {
-                                ...prev.hero,
-                                data_bn: {
-                                  ...prev.hero?.data_bn,
-                                  headline_words: e.target.value
-                                    .split(",")
-                                    .map((s) => s.trim()),
-                                },
-                              },
-                            }))
-                          }
-                        />
-                      </div>
+              {/* HERO SECTION EDITOR & LIVE PREVIEW */}
+              {activeSectionKey === "hero" && (() => {
+                const heroData = sections.hero || {};
+                const dataEn = heroData.data_en || {};
+                const dataBn = heroData.data_bn || {};
+
+                const activeEditData = heroEditLang === "en" ? dataEn : dataBn;
+                const activeHeadlineScale = Number(activeEditData.headline_scale) || 100;
+                const activeSubtitleScale = Number(activeEditData.subtitle_scale) || 100;
+
+                const previewData = heroPreviewLang === "en" ? dataEn : dataBn;
+                const previewHeadlineScale = Number(previewData.headline_scale) || 100;
+                const previewSubtitleScale = Number(previewData.subtitle_scale) || 100;
+
+                const getWordsList = (val, defaultList) => {
+                  if (Array.isArray(val) && val.length > 0) return val;
+                  if (typeof val === "string" && val.trim()) {
+                    return val.split(/[,\n]/).map((w) => w.trim()).filter(Boolean);
+                  }
+                  return defaultList;
+                };
+
+                const previewWords = getWordsList(
+                  previewData.headline_words,
+                  heroPreviewLang === "en"
+                    ? ["Learn", "by", "practice."]
+                    : ["চর্চায়", "শিখি,", "অনুশীলনে।"]
+                );
+
+                const updateHeroScale = (lang, field, value) => {
+                  const targetLang = lang === "en" ? "data_en" : "data_bn";
+                  setSections((prev) => ({
+                    ...prev,
+                    hero: {
+                      ...prev.hero,
+                      [targetLang]: {
+                        ...prev.hero?.[targetLang],
+                        [field]: Number(value),
+                      },
+                    },
+                  }));
+                };
+
+                const updateHeroField = (lang, field, value) => {
+                  const targetLang = lang === "en" ? "data_en" : "data_bn";
+                  setSections((prev) => ({
+                    ...prev,
+                    hero: {
+                      ...prev.hero,
+                      [targetLang]: {
+                        ...prev.hero?.[targetLang],
+                        [field]: value,
+                      },
+                    },
+                  }));
+                };
+
+                const handleSaveHero = () => {
+                  const payload = {
+                    ...heroData,
+                    section_id: "hero",
+                    name: "Hero Section",
+                    data_en: {
+                      ...dataEn,
+                      headline_words: getWordsList(dataEn.headline_words, ["Learn", "by", "practice."]),
+                      headline_scale: Number(dataEn.headline_scale) || 100,
+                      subtitle_scale: Number(dataEn.subtitle_scale) || 100,
+                      subtitle: dataEn.subtitle || "",
+                      primary_cta_text: dataEn.primary_cta_text || "Browse courses",
+                      secondary_cta_text: dataEn.secondary_cta_text || "Explore class moments",
+                      call_now_text: dataEn.call_now_text || "📞 Call now",
+                    },
+                    data_bn: {
+                      ...dataBn,
+                      headline_words: getWordsList(dataBn.headline_words, ["চর্চায়", "শিখি,", "অনুশীলনে।"]),
+                      headline_scale: Number(dataBn.headline_scale) || 100,
+                      subtitle_scale: Number(dataBn.subtitle_scale) || 100,
+                      subtitle: dataBn.subtitle || "",
+                      primary_cta_text: dataBn.primary_cta_text || "কোর্সসমূহ দেখুন",
+                      secondary_cta_text: dataBn.secondary_cta_text || "ক্লাসের মুহূর্ত দেখুন",
+                      call_now_text: dataBn.call_now_text || "📞 কল করুন",
+                    },
+                  };
+                  handleSaveSection("hero", payload);
+                };
+
+                const headlinePresets = [
+                  { label: "Compact", scale: 80 },
+                  { label: "Normal", scale: 100 },
+                  { label: "Large", scale: 115 },
+                  { label: "Huge", scale: 130 },
+                ];
+
+                const subtitlePresets = [
+                  { label: "Compact", scale: 85 },
+                  { label: "Normal", scale: 100 },
+                  { label: "Large", scale: 120 },
+                ];
+
+                // Responsive preview rem calculation
+                const isMobilePreview = heroPreviewDevice === "mobile";
+                const previewHeadlineRem = (isMobilePreview ? 1.55 : 2.45) * (previewHeadlineScale / 100);
+                const previewSubtitleRem = (isMobilePreview ? 0.76 : 0.92) * (previewSubtitleScale / 100);
+
+                return (
+                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+                    {/* LEFT: HERO CONFIGURATION CONTROLS */}
+                    <div className="xl:col-span-7 space-y-6">
+                      <Card className="shadow-sm border-slate-200">
+                        <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                          <div>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              <Type size={19} className="text-blue-600" />
+                              <span>Hero Section Typography & Content</span>
+                            </CardTitle>
+                            <CardDescription>
+                              Configure rotating headline words, subtitles, text sizes, and action buttons.
+                            </CardDescription>
+                          </div>
+                          <Button
+                            onClick={handleSaveHero}
+                            disabled={savingKey === "hero"}
+                            className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold shrink-0 shadow-sm"
+                          >
+                            <Save size={16} />
+                            <span>{savingKey === "hero" ? "Saving..." : "Save Hero"}</span>
+                          </Button>
+                        </CardHeader>
+
+                        <CardContent className="space-y-6 pt-5">
+                          {/* Language Sub-Tabs */}
+                          <div>
+                            <Label className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-2 block">
+                              Select Language to Configure:
+                            </Label>
+                            <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setHeroEditLang("en");
+                                  setHeroPreviewLang("en");
+                                }}
+                                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                                  heroEditLang === "en"
+                                    ? "bg-white text-blue-700 shadow-sm border border-slate-200/80"
+                                    : "text-slate-600 hover:text-slate-900"
+                                }`}
+                              >
+                                <span>🇬🇧 English (EN)</span>
+                                <Badge variant="outline" className="text-[10px] py-0 px-1.5 ml-1 border-blue-200 bg-blue-50/50">
+                                  {Number(dataEn.headline_scale) || 100}%
+                                </Badge>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setHeroEditLang("bn");
+                                  setHeroPreviewLang("bn");
+                                }}
+                                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                                  heroEditLang === "bn"
+                                    ? "bg-white text-blue-700 shadow-sm border border-slate-200/80"
+                                    : "text-slate-600 hover:text-slate-900"
+                                }`}
+                              >
+                                <span>🇧🇩 বাংলা (BN)</span>
+                                <Badge variant="outline" className="text-[10px] py-0 px-1.5 ml-1 border-blue-200 bg-blue-50/50">
+                                  {Number(dataBn.headline_scale) || 100}%
+                                </Badge>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* 1. HEADLINE WORDS */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label className="font-semibold text-slate-900">
+                                Headline Words ({heroEditLang.toUpperCase()}, comma-separated)
+                              </Label>
+                              <span className="text-[11px] text-slate-500 font-medium">
+                                Last word gets gradient highlight
+                              </span>
+                            </div>
+                            <Input
+                              type="text"
+                              placeholder={heroEditLang === "en" ? "Learn, by, practice." : "চর্চায়, শিখি,, অনুশীলনে।"}
+                              value={
+                                Array.isArray(activeEditData.headline_words)
+                                  ? activeEditData.headline_words.join(", ")
+                                  : (activeEditData.headline_words || "")
+                              }
+                              onChange={(e) =>
+                                updateHeroField(heroEditLang, "headline_words", e.target.value)
+                              }
+                              className="font-medium"
+                            />
+                            <p className="text-[11px] text-slate-500 leading-normal">
+                              Each word appears with a smooth reveal animation. The final word is rendered in our terracotta brand gradient.
+                            </p>
+                          </div>
+
+                          {/* 2. HEADLINE FONT SIZE CONTROLS */}
+                          <div className="p-4 rounded-xl bg-slate-50/90 border border-slate-200/90 space-y-3.5">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Type size={16} className="text-blue-600" />
+                                <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                                  Headline Text Size ({heroEditLang.toUpperCase()})
+                                </span>
+                                <Badge className="bg-blue-600 text-white font-black text-xs px-2 py-0.5">
+                                  {activeHeadlineScale}%
+                                </Badge>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => updateHeroScale(heroEditLang, "headline_scale", 100)}
+                                className="text-xs text-slate-500 hover:text-blue-700 flex items-center gap-1 font-semibold transition-colors"
+                                title="Reset headline size to standard default"
+                              >
+                                <RotateCcw size={12} />
+                                <span>Reset (100%)</span>
+                              </button>
+                            </div>
+
+                            {/* Presets */}
+                            <div>
+                              <div className="text-[11px] font-semibold text-slate-500 mb-1.5">
+                                Quick Size Presets:
+                              </div>
+                              <div className="grid grid-cols-4 gap-2">
+                                {headlinePresets.map((preset) => {
+                                  const isActive = activeHeadlineScale === preset.scale;
+                                  return (
+                                    <button
+                                      key={preset.scale}
+                                      type="button"
+                                      onClick={() => updateHeroScale(heroEditLang, "headline_scale", preset.scale)}
+                                      className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all text-center ${
+                                        isActive
+                                          ? "bg-blue-600 text-white shadow-xs"
+                                          : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300"
+                                      }`}
+                                    >
+                                      {preset.label} ({preset.scale}%)
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Fine-Tuning Slider */}
+                            <div className="space-y-1.5 pt-1">
+                              <div className="flex justify-between text-[11px] font-medium text-slate-500">
+                                <span>Compact (70%)</span>
+                                <span className="font-semibold text-blue-700">Slide to fine-tune</span>
+                                <span>Massive (150%)</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="70"
+                                max="150"
+                                step="1"
+                                value={activeHeadlineScale}
+                                onChange={(e) => updateHeroScale(heroEditLang, "headline_scale", e.target.value)}
+                                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                              />
+                            </div>
+                          </div>
+
+                          {/* 3. HERO SUBTITLE */}
+                          <div className="space-y-2">
+                            <Label className="font-semibold text-slate-900">
+                              Hero Subtitle ({heroEditLang.toUpperCase()})
+                            </Label>
+                            <Textarea
+                              rows={3}
+                              placeholder="Introductory mission statement under headline..."
+                              value={activeEditData.subtitle || ""}
+                              onChange={(e) =>
+                                updateHeroField(heroEditLang, "subtitle", e.target.value)
+                              }
+                            />
+                          </div>
+
+                          {/* 4. SUBTITLE FONT SIZE CONTROLS */}
+                          <div className="p-4 rounded-xl bg-slate-50/90 border border-slate-200/90 space-y-3.5">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Sliders size={16} className="text-blue-600" />
+                                <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                                  Subtitle Text Size ({heroEditLang.toUpperCase()})
+                                </span>
+                                <Badge className="bg-blue-600 text-white font-black text-xs px-2 py-0.5">
+                                  {activeSubtitleScale}%
+                                </Badge>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => updateHeroScale(heroEditLang, "subtitle_scale", 100)}
+                                className="text-xs text-slate-500 hover:text-blue-700 flex items-center gap-1 font-semibold transition-colors"
+                                title="Reset subtitle size to standard default"
+                              >
+                                <RotateCcw size={12} />
+                                <span>Reset (100%)</span>
+                              </button>
+                            </div>
+
+                            {/* Presets */}
+                            <div>
+                              <div className="text-[11px] font-semibold text-slate-500 mb-1.5">
+                                Quick Size Presets:
+                              </div>
+                              <div className="grid grid-cols-3 gap-2">
+                                {subtitlePresets.map((preset) => {
+                                  const isActive = activeSubtitleScale === preset.scale;
+                                  return (
+                                    <button
+                                      key={preset.scale}
+                                      type="button"
+                                      onClick={() => updateHeroScale(heroEditLang, "subtitle_scale", preset.scale)}
+                                      className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all text-center ${
+                                        isActive
+                                          ? "bg-blue-600 text-white shadow-xs"
+                                          : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300"
+                                      }`}
+                                    >
+                                      {preset.label} ({preset.scale}%)
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Fine-Tuning Slider */}
+                            <div className="space-y-1.5 pt-1">
+                              <div className="flex justify-between text-[11px] font-medium text-slate-500">
+                                <span>Compact (70%)</span>
+                                <span className="font-semibold text-blue-700">Slide to fine-tune</span>
+                                <span>Prominent (150%)</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="70"
+                                max="150"
+                                step="1"
+                                value={activeSubtitleScale}
+                                onChange={(e) => updateHeroScale(heroEditLang, "subtitle_scale", e.target.value)}
+                                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                              />
+                            </div>
+                          </div>
+
+                          {/* 5. CALL TO ACTION BUTTONS */}
+                          <div className="pt-2 border-t border-slate-200 space-y-3">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
+                              Hero Call-To-Action (CTA) Buttons ({heroEditLang.toUpperCase()})
+                            </Label>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              <div>
+                                <span className="text-[11px] font-medium text-slate-500 block mb-1">
+                                  Primary Button Text
+                                </span>
+                                <Input
+                                  type="text"
+                                  value={activeEditData.primary_cta_text || (heroEditLang === "en" ? "Browse courses" : "কোর্সসমূহ দেখুন")}
+                                  onChange={(e) => updateHeroField(heroEditLang, "primary_cta_text", e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <span className="text-[11px] font-medium text-slate-500 block mb-1">
+                                  Secondary Button Text
+                                </span>
+                                <Input
+                                  type="text"
+                                  value={activeEditData.secondary_cta_text || (heroEditLang === "en" ? "Explore class moments" : "ক্লাসের মুহূর্ত দেখুন")}
+                                  onChange={(e) => updateHeroField(heroEditLang, "secondary_cta_text", e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <span className="text-[11px] font-medium text-slate-500 block mb-1">
+                                  Call Now Button Text
+                                </span>
+                                <Input
+                                  type="text"
+                                  value={activeEditData.call_now_text || (heroEditLang === "en" ? "📞 Call now" : "📞 কল করুন")}
+                                  onChange={(e) => updateHeroField(heroEditLang, "call_now_text", e.target.value)}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+
+                        <CardFooter className="justify-end pt-4 border-t border-slate-100">
+                          <Button
+                            onClick={handleSaveHero}
+                            disabled={savingKey === "hero"}
+                            className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm"
+                          >
+                            <Save size={16} />
+                            <span>{savingKey === "hero" ? "Saving Changes..." : "Save Hero Section"}</span>
+                          </Button>
+                        </CardFooter>
+                      </Card>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div>
-                        <Label>Hero Subtitle (EN)</Label>
-                        <Textarea
-                          rows={3}
-                          value={sections.hero?.data_en?.subtitle || ""}
-                          onChange={(e) =>
-                            setSections((prev) => ({
-                              ...prev,
-                              hero: {
-                                ...prev.hero,
-                                data_en: {
-                                  ...prev.hero?.data_en,
-                                  subtitle: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label>Hero Subtitle (BN)</Label>
-                        <Textarea
-                          rows={3}
-                          value={sections.hero?.data_bn?.subtitle || ""}
-                          onChange={(e) =>
-                            setSections((prev) => ({
-                              ...prev,
-                              hero: {
-                                ...prev.hero,
-                                data_bn: {
-                                  ...prev.hero?.data_bn,
-                                  subtitle: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                        />
-                      </div>
+                    {/* RIGHT: INTERACTIVE LIVE PREVIEW PANEL */}
+                    <div className="xl:col-span-5 sticky top-6 space-y-4">
+                      <Card className="shadow-md border-slate-200 overflow-hidden">
+                        <CardHeader className="pb-3 border-b border-slate-100 bg-white">
+                          <div className="flex flex-col gap-2.5">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Eye size={17} className="text-blue-600" />
+                                <span className="font-bold text-slate-900 text-sm">Live Hero Preview</span>
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                  Live Sync
+                                </span>
+                              </div>
+
+                              {/* Viewport device switcher */}
+                              <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+                                <button
+                                  type="button"
+                                  onClick={() => setHeroPreviewDevice("desktop")}
+                                  className={`flex items-center gap-1 px-2 py-1 rounded-md font-semibold transition-all ${
+                                    heroPreviewDevice === "desktop"
+                                      ? "bg-white text-blue-700 shadow-xs"
+                                      : "text-slate-600 hover:text-slate-900"
+                                  }`}
+                                  title="Desktop Viewport"
+                                >
+                                  <Monitor size={13} />
+                                  <span>Desktop</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setHeroPreviewDevice("mobile")}
+                                  className={`flex items-center gap-1 px-2 py-1 rounded-md font-semibold transition-all ${
+                                    heroPreviewDevice === "mobile"
+                                      ? "bg-white text-blue-700 shadow-xs"
+                                      : "text-slate-600 hover:text-slate-900"
+                                  }`}
+                                  title="Mobile Viewport"
+                                >
+                                  <Smartphone size={13} />
+                                  <span>Mobile</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Preview Language Switcher */}
+                            <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                              <span className="text-slate-500 font-medium">Previewing:</span>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setHeroPreviewLang("en")}
+                                  className={`px-2 py-0.5 rounded font-bold transition-all text-xs ${
+                                    heroPreviewLang === "en"
+                                      ? "bg-blue-600 text-white shadow-xs"
+                                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  🇬🇧 English
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setHeroPreviewLang("bn")}
+                                  className={`px-2 py-0.5 rounded font-bold transition-all text-xs ${
+                                    heroPreviewLang === "bn"
+                                      ? "bg-blue-600 text-white shadow-xs"
+                                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  🇧🇩 বাংলা
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </CardHeader>
+
+                        <CardContent className="p-4 bg-slate-100/70">
+                          {/* FRAME WRAPPER */}
+                          <div
+                            className={`mx-auto transition-all duration-300 ${
+                              isMobilePreview
+                                ? "max-w-[310px] rounded-[30px] border-4 border-slate-800 shadow-2xl overflow-hidden bg-[#faf8f5]"
+                                : "w-full rounded-2xl border border-slate-200 shadow-md overflow-hidden bg-[#faf8f5]"
+                            }`}
+                          >
+                            {/* Device Chrome */}
+                            {isMobilePreview ? (
+                              <div className="h-4 bg-slate-800 flex items-center justify-center gap-1.5">
+                                <span className="w-10 h-1 rounded-full bg-slate-600" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-700" />
+                              </div>
+                            ) : (
+                              <div className="px-3 py-1.5 bg-slate-100/90 border-b border-slate-200/80 flex items-center gap-2">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
+                                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                                </div>
+                                <div className="flex-1 text-center">
+                                  <span className="px-3 py-0.5 bg-white rounded-full text-[10px] text-slate-500 border border-slate-200 font-mono">
+                                    onushilon.com
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* CANVAS */}
+                            <div
+                              className="p-5 text-center flex flex-col items-center justify-center min-h-[360px]"
+                              style={{
+                                background: "radial-gradient(ellipse 95% 70% at 50% 12%, #faf8f5 0%, #f4f3ee 60%, #ede8de 100%)",
+                              }}
+                            >
+                              {/* Status Pill */}
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-slate-200/80 shadow-xs text-[10px] font-bold text-slate-800 mb-3">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                <span>
+                                  {heroPreviewLang === "en"
+                                    ? "Admitting for Next Cohort • Limited Seats"
+                                    : "পরবর্তী ব্যাচে ভর্তি চলছে • সীমিত আসন"}
+                                </span>
+                              </div>
+
+                              {/* HEADLINE */}
+                              <h1
+                                style={{
+                                  fontSize: `${previewHeadlineRem.toFixed(2)}rem`,
+                                  fontWeight: 800,
+                                  lineHeight: 1.14,
+                                  letterSpacing: "-0.035em",
+                                  color: "#0f2a43",
+                                  margin: "6px 0 10px",
+                                }}
+                              >
+                                {previewWords.map((word, idx) => {
+                                  const isLast = idx === previewWords.length - 1;
+                                  return (
+                                    <span key={`${word}-${idx}`} className="block">
+                                      {isLast ? (
+                                        <em
+                                          style={{
+                                            fontStyle: "normal",
+                                            color: "#c96442",
+                                            background: "linear-gradient(135deg, #d97757 0%, #b85430 100%)",
+                                            WebkitBackgroundClip: "text",
+                                            WebkitTextFillColor: "transparent",
+                                          }}
+                                        >
+                                          {word}
+                                        </em>
+                                      ) : (
+                                        word
+                                      )}
+                                    </span>
+                                  );
+                                })}
+                              </h1>
+
+                              {/* SUBTITLE */}
+                              <p
+                                style={{
+                                  fontSize: `${previewSubtitleRem.toFixed(2)}rem`,
+                                  lineHeight: 1.55,
+                                  color: "#334454",
+                                  opacity: 0.92,
+                                  maxWidth: "42ch",
+                                  margin: "10px auto 18px",
+                                }}
+                              >
+                                {previewData.subtitle ||
+                                  (heroPreviewLang === "en"
+                                    ? "Onushilon Academy gives you expert mentors, live interactive classes and daily exercises, from SSC to job-ready tech skills."
+                                    : "অনলাইন ও অফলাইনে অভিজ্ঞ মেন্টরদের নিবিড় দিকনির্দেশনা, সরাসরি ইন্টারঅ্যাক্টিভ ক্লাস এবং প্রতিদিনের অনুশীলনের মাধ্যমে নিজেকে গড়ে তুলুন।")}
+                              </p>
+
+                              {/* CTA BUTTONS */}
+                              <div className="flex items-center justify-center gap-2 flex-wrap pt-1">
+                                <span className="bg-[#0f2a43] text-white font-semibold text-[11px] px-3.5 py-1.5 rounded-full shadow-xs">
+                                  {previewData.primary_cta_text || (heroPreviewLang === "en" ? "Browse courses" : "কোর্সসমূহ দেখুন")}
+                                </span>
+                                <span className="bg-white/80 border border-slate-300 text-slate-800 font-medium text-[11px] px-3 py-1.5 rounded-full">
+                                  {previewData.secondary_cta_text || (heroPreviewLang === "en" ? "Explore class moments" : "ক্লাসের মুহূর্ত দেখুন")}
+                                </span>
+                                <span className="bg-emerald-50 text-emerald-800 border border-emerald-300 font-semibold text-[11px] px-3 py-1.5 rounded-full">
+                                  {previewData.call_now_text || (heroPreviewLang === "en" ? "📞 Call now" : "📞 কল করুন")}
+                                </span>
+                              </div>
+
+                              {/* Mini floating card stream indicators */}
+                              <div className="mt-5 pt-3 border-t border-slate-300/40 w-full flex items-center justify-center gap-1.5 text-[9px] text-slate-500 font-semibold">
+                                <span className="px-2 py-0.5 rounded-md bg-white/70 border border-slate-200">🤖 Robotics Lab</span>
+                                <span className="px-2 py-0.5 rounded-md bg-white/70 border border-slate-200">🎨 Art Studio</span>
+                                <span className="px-2 py-0.5 rounded-md bg-white/70 border border-slate-200">📚 Smart Class</span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+
+                        <CardFooter className="py-2.5 px-4 bg-white border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                          <span className="flex items-center gap-1">
+                            <Sparkles size={13} className="text-amber-500" />
+                            <span>Preview updates synchronously</span>
+                          </span>
+                          <span className="font-bold text-blue-700">
+                            {heroPreviewLang.toUpperCase()} • H: {previewHeadlineScale}% • Sub: {previewSubtitleScale}%
+                          </span>
+                        </CardFooter>
+                      </Card>
                     </div>
-                  </CardContent>
-                  <CardFooter className="justify-end">
-                    <Button
-                      onClick={() => handleSaveSection("hero", sections.hero)}
-                      disabled={savingKey === "hero"}
-                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                    >
-                      <Save size={16} />
-                      <span>
-                        {savingKey === "hero"
-                          ? "Saving..."
-                          : "Save Hero Section"}
-                      </span>
-                    </Button>
-                  </CardFooter>
-                </Card>
-              )}
+                  </div>
+                );
+              })()}
 
               {/* STORY SECTION EDITOR */}
               {activeSectionKey === "story" && (

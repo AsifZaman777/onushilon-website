@@ -414,7 +414,7 @@ function Hero({ onPhotoClick }) {
       words = heroData.headline_words;
     } else if (typeof heroData.headline_words === "string") {
       words = heroData.headline_words
-        .split("\n")
+        .split(/[,\n]/)
         .map((w) => w.trim())
         .filter(Boolean);
       if (words.length === 0) words = [heroData.headline_words];
@@ -427,6 +427,27 @@ function Hero({ onPhotoClick }) {
   const exploreMomentsText =
     heroData?.secondary_cta_text || dict.hero?.exploreMoments || "Explore class moments";
   const callNowText = heroData?.call_now_text || dict.hero?.callNow || "📞 Call now";
+
+  // Dynamic headline and subtitle font scales (configured via Admin CRM)
+  const headlineScale = Number(heroData?.headline_scale) || 100;
+  const subtitleScale = Number(heroData?.subtitle_scale) || 100;
+
+  const headlineStyle =
+    headlineScale !== 100
+      ? {
+          fontSize:
+            lang === "bn"
+              ? `clamp(${(2.8 * (headlineScale / 100)).toFixed(2)}rem, ${(10 * (headlineScale / 100)).toFixed(2)}vw, ${(7.8 * (headlineScale / 100)).toFixed(2)}rem)`
+              : `clamp(${(3.4 * (headlineScale / 100)).toFixed(2)}rem, ${(13 * (headlineScale / 100)).toFixed(2)}vw, ${(11.5 * (headlineScale / 100)).toFixed(2)}rem)`,
+        }
+      : undefined;
+
+  const subtitleStyle =
+    subtitleScale !== 100
+      ? {
+          fontSize: `${(1.18 * (subtitleScale / 100)).toFixed(2)}rem`,
+        }
+      : undefined;
 
   return (
     <section id="home" className="hero" ref={ref}>
@@ -484,7 +505,7 @@ function Hero({ onPhotoClick }) {
             padding: "0 4vw",
           }}
         >
-          <h1>
+          <h1 style={headlineStyle}>
             {words.map((w, i) => (
               <span key={`${w}-${i}`}>
                 <motion.span
@@ -504,6 +525,7 @@ function Hero({ onPhotoClick }) {
           </h1>
           <motion.p
             className="sub"
+            style={subtitleStyle}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.9 }}
