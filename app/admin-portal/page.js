@@ -55,6 +55,8 @@ import {
   Smartphone,
   RotateCcw,
   Type,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -811,12 +813,17 @@ export default function AdminPortalPage() {
     }));
   };
 
-  // Add FAQ Item
+  // Add FAQ Item (Bilingual)
   const handleAddFaq = () => {
-    const currentList = sections.faq?.data_en?.items || [];
-    const newItem = {
+    const currentListEn = sections.faq?.data_en?.items || [];
+    const currentListBn = sections.faq?.data_bn?.items || [];
+    const newItemEn = {
       q: "What are the class timings?",
       a: "Classes are held both online and offline during weekends and weekday evenings.",
+    };
+    const newItemBn = {
+      q: "ক্লাসের সময়সূচি কী?",
+      a: "সপ্তাহান্তে ও সপ্তাহের দিনগুলোর সন্ধ্যায় অনলাইন ও অফলাইনে ক্লাস অনুষ্ঠিত হয়।",
     };
     setSections((prev) => ({
       ...prev,
@@ -824,7 +831,11 @@ export default function AdminPortalPage() {
         ...prev.faq,
         data_en: {
           ...prev.faq?.data_en,
-          items: [...currentList, newItem],
+          items: [...currentListEn, newItemEn],
+        },
+        data_bn: {
+          ...prev.faq?.data_bn,
+          items: [...currentListBn, newItemBn],
         },
       },
     }));
@@ -832,13 +843,391 @@ export default function AdminPortalPage() {
 
   // Delete FAQ Item
   const handleDeleteFaq = (index) => {
-    const currentList = sections.faq?.data_en?.items || [];
-    const updated = currentList.filter((_, i) => i !== index);
+    const currentListEn = sections.faq?.data_en?.items || [];
+    const currentListBn = sections.faq?.data_bn?.items || [];
+    const updatedEn = currentListEn.filter((_, i) => i !== index);
+    const updatedBn = currentListBn.filter((_, i) => i !== index);
     setSections((prev) => ({
       ...prev,
       faq: {
         ...prev.faq,
-        data_en: { ...prev.faq?.data_en, items: updated },
+        data_en: { ...prev.faq?.data_en, items: updatedEn },
+        data_bn: { ...prev.faq?.data_bn, items: updatedBn },
+      },
+    }));
+  };
+
+  // Move FAQ Item Up or Down
+  const handleMoveFaq = (index, direction) => {
+    const targetIdx = direction === "up" ? index - 1 : index + 1;
+    const enItems = [...(sections.faq?.data_en?.items || [])];
+    const bnItems = [...(sections.faq?.data_bn?.items || [])];
+    if (targetIdx < 0 || targetIdx >= enItems.length) return;
+
+    const tempEn = enItems[index];
+    enItems[index] = enItems[targetIdx];
+    enItems[targetIdx] = tempEn;
+
+    if (bnItems.length > 0) {
+      while (bnItems.length < enItems.length) {
+        bnItems.push({ q: "", a: "" });
+      }
+      const tempBn = bnItems[index];
+      bnItems[index] = bnItems[targetIdx];
+      bnItems[targetIdx] = tempBn;
+    }
+
+    setSections((prev) => ({
+      ...prev,
+      faq: {
+        ...prev.faq,
+        data_en: { ...prev.faq?.data_en, items: enItems },
+        data_bn: { ...prev.faq?.data_bn, items: bnItems },
+      },
+    }));
+  };
+
+  // Update FAQ Item Field (EN / BN)
+  const handleFaqItemChange = (index, lang, field, value) => {
+    const listKey = lang === "en" ? "data_en" : "data_bn";
+    const currentList = [...(sections.faq?.[listKey]?.items || [])];
+    while (currentList.length <= index) {
+      currentList.push({ q: "", a: "" });
+    }
+    currentList[index] = {
+      ...currentList[index],
+      [field]: value,
+    };
+    setSections((prev) => ({
+      ...prev,
+      faq: {
+        ...prev.faq,
+        [listKey]: {
+          ...prev.faq?.[listKey],
+          items: currentList,
+        },
+      },
+    }));
+  };
+
+  // Upload CTA Background Image
+  const handleCtaBgUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const data = await uploadImage(file, "sections", "cta-bg");
+      if (data?.url) {
+        setSections((prev) => ({
+          ...prev,
+          cta: {
+            ...prev.cta,
+            media: {
+              ...prev.cta?.media,
+              background_image: data.url,
+            },
+          },
+        }));
+        showToast("CTA background image uploaded! Click Save to apply.", "success");
+      }
+    } catch (err) {
+      showToast(err.message || "Failed to upload image", "error");
+    }
+  };
+
+  // -------------------------------------------------------------
+  // STORY TIMELINE HANDLERS (Monthly vs Yearly Milestones)
+  // -------------------------------------------------------------
+  const handleAddStoryMilestone = (basis = "yearly") => {
+    const isMonthly = basis === "monthly";
+    const currentListEn = sections.story?.data_en?.timeline || [];
+    const currentListBn = sections.story?.data_bn?.timeline || [];
+    const newItemEn = {
+      basis,
+      year: isMonthly ? "Nov 2024" : "2024",
+      year_en: isMonthly ? "Nov 2024" : "2024",
+      year_bn: isMonthly ? "নভেম্বর ২০২৪" : "২০২৪",
+      text: "Milestone achievement description in English",
+      text_en: "Milestone achievement description in English",
+      text_bn: "মাইলফলকের বিস্তারিত অর্জন ও বিবরণ বাংলায়",
+    };
+    const newItemBn = {
+      ...newItemEn,
+      year: newItemEn.year_bn,
+      text: newItemEn.text_bn,
+    };
+    setSections((prev) => ({
+      ...prev,
+      story: {
+        ...prev.story,
+        data_en: { ...prev.story?.data_en, timeline: [...currentListEn, newItemEn] },
+        data_bn: { ...prev.story?.data_bn, timeline: [...currentListBn, newItemBn] },
+      },
+    }));
+  };
+
+  const handleDeleteStoryMilestone = (index) => {
+    const listEn = (sections.story?.data_en?.timeline || []).filter((_, i) => i !== index);
+    const listBn = (sections.story?.data_bn?.timeline || []).filter((_, i) => i !== index);
+    setSections((prev) => ({
+      ...prev,
+      story: {
+        ...prev.story,
+        data_en: { ...prev.story?.data_en, timeline: listEn },
+        data_bn: { ...prev.story?.data_bn, timeline: listBn },
+      },
+    }));
+  };
+
+  const handleMoveStoryMilestone = (index, dir) => {
+    const listEn = [...(sections.story?.data_en?.timeline || [])];
+    const targetIdx = index + dir;
+    if (targetIdx < 0 || targetIdx >= listEn.length) return;
+    const itemEn = listEn[index];
+    listEn.splice(index, 1);
+    listEn.splice(targetIdx, 0, itemEn);
+
+    const listBn = [...(sections.story?.data_bn?.timeline || [])];
+    if (listBn.length > index) {
+      const itemBn = listBn[index];
+      listBn.splice(index, 1);
+      listBn.splice(targetIdx, 0, itemBn);
+    }
+    setSections((prev) => ({
+      ...prev,
+      story: {
+        ...prev.story,
+        data_en: { ...prev.story?.data_en, timeline: listEn },
+        data_bn: { ...prev.story?.data_bn, timeline: listBn },
+      },
+    }));
+  };
+
+  const handleStoryMilestoneChange = (index, field, value) => {
+    const listEn = [...(sections.story?.data_en?.timeline || [])];
+    const listBn = [...(sections.story?.data_bn?.timeline || [])];
+    if (!listEn[index]) listEn[index] = {};
+    if (!listBn[index]) listBn[index] = {};
+
+    listEn[index] = { ...listEn[index], [field]: value };
+    listBn[index] = { ...listBn[index], [field]: value };
+
+    if (field === "year_en") {
+      listEn[index].year = value;
+    } else if (field === "year_bn") {
+      listBn[index].year = value;
+    } else if (field === "text_en") {
+      listEn[index].text = value;
+    } else if (field === "text_bn") {
+      listBn[index].text = value;
+    }
+
+    setSections((prev) => ({
+      ...prev,
+      story: {
+        ...prev.story,
+        data_en: { ...prev.story?.data_en, timeline: listEn },
+        data_bn: { ...prev.story?.data_bn, timeline: listBn },
+      },
+    }));
+  };
+
+  // -------------------------------------------------------------
+  // WHY US SECTION HANDLERS (Stats & Features)
+  // -------------------------------------------------------------
+  const handleWhyStatChange = (index, field, value) => {
+    const statsEn = [...(sections.why?.data_en?.stats || [])];
+    const statsBn = [...(sections.why?.data_bn?.stats || [])];
+    if (!statsEn[index]) statsEn[index] = {};
+    if (!statsBn[index]) statsBn[index] = {};
+
+    statsEn[index] = { ...statsEn[index], [field]: value };
+    statsBn[index] = { ...statsBn[index], [field]: value };
+
+    setSections((prev) => ({
+      ...prev,
+      why: {
+        ...prev.why,
+        data_en: { ...prev.why?.data_en, stats: statsEn },
+        data_bn: { ...prev.why?.data_bn, stats: statsBn },
+      },
+    }));
+  };
+
+  const handleAddWhyFeature = () => {
+    const featuresEn = sections.why?.data_en?.features || [];
+    const featuresBn = sections.why?.data_bn?.features || [];
+    const newFeature = {
+      title_en: "Core Value Pillar",
+      title_bn: "মূল বৈশিষ্ট্যের শিরোনাম",
+      desc_en: "Explain the feature and learning benefit in English.",
+      desc_bn: "বৈশিষ্ট্য ও শিক্ষার্থীদের উপকারের বিবরণ বাংলায় লিখুন।",
+    };
+    setSections((prev) => ({
+      ...prev,
+      why: {
+        ...prev.why,
+        data_en: { ...prev.why?.data_en, features: [...featuresEn, newFeature] },
+        data_bn: { ...prev.why?.data_bn, features: [...featuresBn, newFeature] },
+      },
+    }));
+  };
+
+  const handleDeleteWhyFeature = (index) => {
+    const featuresEn = (sections.why?.data_en?.features || []).filter((_, i) => i !== index);
+    const featuresBn = (sections.why?.data_bn?.features || []).filter((_, i) => i !== index);
+    setSections((prev) => ({
+      ...prev,
+      why: {
+        ...prev.why,
+        data_en: { ...prev.why?.data_en, features: featuresEn },
+        data_bn: { ...prev.why?.data_bn, features: featuresBn },
+      },
+    }));
+  };
+
+  const handleWhyFeatureChange = (index, field, value) => {
+    const featuresEn = [...(sections.why?.data_en?.features || [])];
+    const featuresBn = [...(sections.why?.data_bn?.features || [])];
+    if (!featuresEn[index]) featuresEn[index] = {};
+    if (!featuresBn[index]) featuresBn[index] = {};
+
+    featuresEn[index] = { ...featuresEn[index], [field]: value };
+    featuresBn[index] = { ...featuresBn[index], [field]: value };
+
+    setSections((prev) => ({
+      ...prev,
+      why: {
+        ...prev.why,
+        data_en: { ...prev.why?.data_en, features: featuresEn },
+        data_bn: { ...prev.why?.data_bn, features: featuresBn },
+      },
+    }));
+  };
+
+  // -------------------------------------------------------------
+  // PRACTICE ARENA HANDLERS (Quiz Questions & Options)
+  // -------------------------------------------------------------
+  const handleAddPracticeTask = () => {
+    const currentTasksEn = sections.practice?.data_en?.tasks || [];
+    const currentTasksBn = sections.practice?.data_bn?.tasks || [];
+    const newTask = {
+      subject_en: "General Science",
+      subject_bn: "সাধারণ বিজ্ঞান",
+      subject: "General Science",
+      question_en: "Sample concept challenge question in English?",
+      question_bn: "বাংলায় একটি নমুনা চ্যালেঞ্জ প্রশ্ন?",
+      options_en: ["Option A", "Option B", "Option C", "Option D"],
+      options_bn: ["অপশন ১", "অপশন ২", "অপশন ৩", "অপশন ৪"],
+      correct: 0,
+      explanation_en: "Detailed step-by-step reasoning in English.",
+      explanation_bn: "বাংলায় প্রতিটি ধাপের বিস্তারিত ব্যাখ্যা।",
+    };
+    setSections((prev) => ({
+      ...prev,
+      practice: {
+        ...prev.practice,
+        data_en: { ...prev.practice?.data_en, tasks: [...currentTasksEn, newTask] },
+        data_bn: { ...prev.practice?.data_bn, tasks: [...currentTasksBn, newTask] },
+      },
+    }));
+  };
+
+  const handleDeletePracticeTask = (index) => {
+    const tasksEn = (sections.practice?.data_en?.tasks || []).filter((_, i) => i !== index);
+    const tasksBn = (sections.practice?.data_bn?.tasks || []).filter((_, i) => i !== index);
+    setSections((prev) => ({
+      ...prev,
+      practice: {
+        ...prev.practice,
+        data_en: { ...prev.practice?.data_en, tasks: tasksEn },
+        data_bn: { ...prev.practice?.data_bn, tasks: tasksBn },
+      },
+    }));
+  };
+
+  const handlePracticeTaskChange = (index, field, value) => {
+    const tasksEn = [...(sections.practice?.data_en?.tasks || [])];
+    const tasksBn = [...(sections.practice?.data_bn?.tasks || [])];
+    if (!tasksEn[index]) tasksEn[index] = {};
+    if (!tasksBn[index]) tasksBn[index] = {};
+
+    tasksEn[index] = { ...tasksEn[index], [field]: value };
+    tasksBn[index] = { ...tasksBn[index], [field]: value };
+
+    setSections((prev) => ({
+      ...prev,
+      practice: {
+        ...prev.practice,
+        data_en: { ...prev.practice?.data_en, tasks: tasksEn },
+        data_bn: { ...prev.practice?.data_bn, tasks: tasksBn },
+      },
+    }));
+  };
+
+  const handlePracticeOptionChange = (taskIdx, optIdx, langKey, value) => {
+    const targetKey = langKey === "bn" ? "options_bn" : "options_en";
+    const tasks = [...(sections.practice?.[`data_${langKey}`]?.tasks || [])];
+    if (!tasks[taskIdx]) return;
+    const options = [...(tasks[taskIdx][targetKey] || tasks[taskIdx].options || ["", "", "", ""])];
+    options[optIdx] = value;
+    tasks[taskIdx] = {
+      ...tasks[taskIdx],
+      [targetKey]: options,
+      ...(langKey === "en" ? { options } : {}),
+    };
+
+    setSections((prev) => ({
+      ...prev,
+      practice: {
+        ...prev.practice,
+        [`data_${langKey}`]: {
+          ...prev.practice?.[`data_${langKey}`],
+          tasks,
+        },
+      },
+    }));
+  };
+
+  // -------------------------------------------------------------
+  // MARQUEE HANDLERS
+  // -------------------------------------------------------------
+  const handleAddMarqueeItem = () => {
+    const itemsEn = sections.marquee?.data_en?.items || [];
+    const itemsBn = sections.marquee?.data_bn?.items || [];
+    setSections((prev) => ({
+      ...prev,
+      marquee: {
+        ...prev.marquee,
+        data_en: { ...prev.marquee?.data_en, items: [...itemsEn, "New Highlight"] },
+        data_bn: { ...prev.marquee?.data_bn, items: [...itemsBn, "নতুন হাইলাইট"] },
+      },
+    }));
+  };
+
+  const handleDeleteMarqueeItem = (index) => {
+    const itemsEn = (sections.marquee?.data_en?.items || []).filter((_, i) => i !== index);
+    const itemsBn = (sections.marquee?.data_bn?.items || []).filter((_, i) => i !== index);
+    setSections((prev) => ({
+      ...prev,
+      marquee: {
+        ...prev.marquee,
+        data_en: { ...prev.marquee?.data_en, items: itemsEn },
+        data_bn: { ...prev.marquee?.data_bn, items: itemsBn },
+      },
+    }));
+  };
+
+  const handleMarqueeItemChange = (index, langKey, value) => {
+    const items = [...(sections.marquee?.[`data_${langKey}`]?.items || [])];
+    items[index] = value;
+    setSections((prev) => ({
+      ...prev,
+      marquee: {
+        ...prev.marquee,
+        [`data_${langKey}`]: {
+          ...prev.marquee?.[`data_${langKey}`],
+          items,
+        },
       },
     }));
   };
@@ -2389,23 +2778,25 @@ export default function AdminPortalPage() {
           {currentTab === "sections" && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <TabsList>
-                  {["hero", "story", "why", "voices", "faq", "cta"].map(
-                    (sec) => (
-                      <TabsTrigger
-                        key={sec}
-                        active={activeSectionKey === sec}
-                        onClick={() => setActiveSectionKey(sec)}
-                        className="capitalize"
-                      >
-                        {sec === "voices"
-                          ? "Student Voices"
-                          : sec === "cta"
-                            ? "CTA Banner"
-                            : sec}
-                      </TabsTrigger>
-                    ),
-                  )}
+                <TabsList className="flex-wrap">
+                  {[
+                    { id: "hero", label: "Hero Banner" },
+                    { id: "story", label: "Our Story & Timeline" },
+                    { id: "why", label: "Why Us & Stats" },
+                    { id: "practice", label: "Practice Arena" },
+                    { id: "marquee", label: "Running Marquee" },
+                    { id: "voices", label: "Student Voices" },
+                    { id: "faq", label: "FAQs" },
+                    { id: "cta", label: "CTA Banner" },
+                  ].map((sec) => (
+                    <TabsTrigger
+                      key={sec.id}
+                      active={activeSectionKey === sec.id}
+                      onClick={() => setActiveSectionKey(sec.id)}
+                    >
+                      {sec.label}
+                    </TabsTrigger>
+                  ))}
                 </TabsList>
                 <Button
                   size="sm"
@@ -3051,9 +3442,9 @@ export default function AdminPortalPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                      <CardTitle>Our Story & Philosophy</CardTitle>
+                      <CardTitle>Our Story & Timeline</CardTitle>
                       <CardDescription>
-                        Academy founding history and educational vision
+                        Academy founding history, philosophy, and monthly/yearly growth milestones
                       </CardDescription>
                     </div>
                     <Button
@@ -3069,7 +3460,8 @@ export default function AdminPortalPage() {
                       </span>
                     </Button>
                   </CardHeader>
-                  <CardContent className="space-y-5">
+                  <CardContent className="space-y-6">
+                    {/* Headings */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div>
                         <Label>Heading (EN)</Label>
@@ -3110,11 +3502,13 @@ export default function AdminPortalPage() {
                         />
                       </div>
                     </div>
+
+                    {/* Leads */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div>
                         <Label>Lead Text (EN)</Label>
                         <Textarea
-                          rows={4}
+                          rows={3}
                           value={sections.story?.data_en?.lead || ""}
                           onChange={(e) =>
                             setSections((prev) => ({
@@ -3133,7 +3527,7 @@ export default function AdminPortalPage() {
                       <div>
                         <Label>Lead Text (BN)</Label>
                         <Textarea
-                          rows={4}
+                          rows={3}
                           value={sections.story?.data_bn?.lead || ""}
                           onChange={(e) =>
                             setSections((prev) => ({
@@ -3148,6 +3542,248 @@ export default function AdminPortalPage() {
                             }))
                           }
                         />
+                      </div>
+                    </div>
+
+                    {/* Story Photos */}
+                    <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <ImageIcon size={18} className="text-blue-600" />
+                        <h4 className="text-sm font-bold text-slate-900">Story Section Photos</h4>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="space-y-2">
+                          <Label>Primary Classroom Photo URL</Label>
+                          <Input
+                            type="text"
+                            value={sections.story?.media?.image_story || ""}
+                            onChange={(e) =>
+                              setSections((prev) => ({
+                                ...prev,
+                                story: {
+                                  ...prev.story,
+                                  media: {
+                                    ...prev.story?.media,
+                                    image_story: e.target.value,
+                                  },
+                                },
+                              }))
+                            }
+                            placeholder="https://... or /uploads/..."
+                          />
+                          {sections.story?.media?.image_story && (
+                            <img
+                              src={resolveMediaUrl(sections.story.media.image_story, BACKEND_ORIGIN)}
+                              alt="Story Preview 1"
+                              className="h-24 w-auto rounded-lg object-cover border border-slate-200 shadow-sm"
+                            />
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Secondary Campus Photo URL</Label>
+                          <Input
+                            type="text"
+                            value={sections.story?.media?.image_story2 || ""}
+                            onChange={(e) =>
+                              setSections((prev) => ({
+                                ...prev,
+                                story: {
+                                  ...prev.story,
+                                  media: {
+                                    ...prev.story?.media,
+                                    image_story2: e.target.value,
+                                  },
+                                },
+                              }))
+                            }
+                            placeholder="https://... or /uploads/..."
+                          />
+                          {sections.story?.media?.image_story2 && (
+                            <img
+                              src={resolveMediaUrl(sections.story.media.image_story2, BACKEND_ORIGIN)}
+                              alt="Story Preview 2"
+                              className="h-24 w-auto rounded-lg object-cover border border-slate-200 shadow-sm"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Timeline Milestones Section */}
+                    <div className="space-y-4 pt-2">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                        <div>
+                          <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <Clock size={18} className="text-blue-600" />
+                            <span>Timeline Milestones ({((sections.story?.data_en?.timeline) || []).length})</span>
+                          </h4>
+                          <p className="text-xs text-slate-500">
+                            Create milestones on a monthly or yearly basis with English and Bengali translations.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAddStoryMilestone("yearly")}
+                            className="gap-1.5 border-amber-300 bg-amber-50/60 hover:bg-amber-100/70 text-amber-900 text-xs font-semibold"
+                          >
+                            <Plus size={13} />
+                            <span>+ Add Yearly Milestone</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAddStoryMilestone("monthly")}
+                            className="gap-1.5 border-blue-300 bg-blue-50/60 hover:bg-blue-100/70 text-blue-900 text-xs font-semibold"
+                          >
+                            <Plus size={13} />
+                            <span>+ Add Monthly Milestone</span>
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        {(sections.story?.data_en?.timeline || []).map((item, idx) => {
+                          const isMonthly = item.basis === "monthly";
+                          const total = (sections.story?.data_en?.timeline || []).length;
+                          const bnItem = sections.story?.data_bn?.timeline?.[idx] || {};
+
+                          return (
+                            <div
+                              key={idx}
+                              className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 relative transition-shadow hover:shadow-sm"
+                            >
+                              {/* Top Bar with Badge, Basis Toggle, and Controls */}
+                              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/60 pb-3">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="text-xs font-extrabold text-slate-700">
+                                    Milestone #{idx + 1}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleStoryMilestoneChange(
+                                        idx,
+                                        "basis",
+                                        isMonthly ? "yearly" : "monthly"
+                                      )
+                                    }
+                                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 border ${
+                                      isMonthly
+                                        ? "bg-blue-100 text-blue-800 border-blue-300 shadow-xs"
+                                        : "bg-amber-100 text-amber-900 border-amber-300 shadow-xs"
+                                    }`}
+                                    title="Click to toggle between Monthly and Yearly basis"
+                                  >
+                                    <span className={`w-2 h-2 rounded-full ${isMonthly ? "bg-blue-600" : "bg-amber-600"}`} />
+                                    <span>{isMonthly ? "Monthly Milestone" : "Yearly Milestone"}</span>
+                                    <span className="text-[10px] opacity-70 underline ml-0.5">(click to switch)</span>
+                                  </button>
+                                </div>
+
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => handleMoveStoryMilestone(idx, -1)}
+                                    disabled={idx === 0}
+                                    className="h-7 w-7 rounded-lg"
+                                    title="Move Up"
+                                  >
+                                    <ArrowUp size={13} />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => handleMoveStoryMilestone(idx, 1)}
+                                    disabled={idx === total - 1}
+                                    className="h-7 w-7 rounded-lg"
+                                    title="Move Down"
+                                  >
+                                    <ArrowDown size={13} />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    onClick={() => handleDeleteStoryMilestone(idx)}
+                                    className="h-7 w-7 rounded-lg ml-1"
+                                    title="Delete Milestone"
+                                  >
+                                    <Trash2 size={13} />
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Inputs: Period / Year */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label className="text-xs">
+                                    {isMonthly ? "Period / Month (EN) e.g. Nov 2023" : "Year (EN) e.g. 2014"}
+                                  </Label>
+                                  <Input
+                                    type="text"
+                                    value={item.year_en || item.year || ""}
+                                    onChange={(e) =>
+                                      handleStoryMilestoneChange(idx, "year_en", e.target.value)
+                                    }
+                                    placeholder={isMonthly ? "Nov 2023" : "2014"}
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">
+                                    {isMonthly ? "Period / Month (BN) যেমন: নভেম্বর ২০২৩" : "Year (BN) যেমন: ২০১৪"}
+                                  </Label>
+                                  <Input
+                                    type="text"
+                                    value={bnItem.year_bn || item.year_bn || ""}
+                                    onChange={(e) =>
+                                      handleStoryMilestoneChange(idx, "year_bn", e.target.value)
+                                    }
+                                    placeholder={isMonthly ? "নভেম্বর ২০২৩" : "২০১৪"}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Inputs: Description */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label className="text-xs">Milestone Description (EN)</Label>
+                                  <Textarea
+                                    rows={2}
+                                    value={item.text_en || item.text || ""}
+                                    onChange={(e) =>
+                                      handleStoryMilestoneChange(idx, "text_en", e.target.value)
+                                    }
+                                    placeholder="Milestone description in English..."
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Milestone Description (BN)</Label>
+                                  <Textarea
+                                    rows={2}
+                                    value={bnItem.text_bn || item.text_bn || ""}
+                                    onChange={(e) =>
+                                      handleStoryMilestoneChange(idx, "text_bn", e.target.value)
+                                    }
+                                    placeholder="মাইলফলকের বিস্তারিত বিবরণ বাংলায়..."
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {(sections.story?.data_en?.timeline || []).length === 0 && (
+                          <div className="text-center py-8 text-slate-500 text-sm border-2 border-dashed border-slate-200 rounded-2xl">
+                            No timeline milestones yet. Click &quot;+ Add Yearly Milestone&quot; or &quot;+ Add Monthly Milestone&quot; above to create one.
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -3173,9 +3809,9 @@ export default function AdminPortalPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                      <CardTitle>Why Us Section</CardTitle>
+                      <CardTitle>Why Us & Stats Section</CardTitle>
                       <CardDescription>
-                        Core value pillars and learning differentiators
+                        Core value pillars, learning differentiators, and 4 animated statistics
                       </CardDescription>
                     </div>
                     <Button
@@ -3189,7 +3825,52 @@ export default function AdminPortalPage() {
                       </span>
                     </Button>
                   </CardHeader>
-                  <CardContent className="space-y-5">
+                  <CardContent className="space-y-6">
+                    {/* Kicker */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <Label>Kicker Tag (EN)</Label>
+                        <Input
+                          type="text"
+                          value={sections.why?.data_en?.kicker || ""}
+                          onChange={(e) =>
+                            setSections((prev) => ({
+                              ...prev,
+                              why: {
+                                ...prev.why,
+                                data_en: {
+                                  ...prev.why?.data_en,
+                                  kicker: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                          placeholder="The Onushilon Difference"
+                        />
+                      </div>
+                      <div>
+                        <Label>Kicker Tag (BN)</Label>
+                        <Input
+                          type="text"
+                          value={sections.why?.data_bn?.kicker || ""}
+                          onChange={(e) =>
+                            setSections((prev) => ({
+                              ...prev,
+                              why: {
+                                ...prev.why,
+                                data_bn: {
+                                  ...prev.why?.data_bn,
+                                  kicker: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                          placeholder="অনুশীলনের অনন্য বৈশিষ্ট্য"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Heading */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div>
                         <Label>Heading (EN)</Label>
@@ -3230,6 +3911,220 @@ export default function AdminPortalPage() {
                         />
                       </div>
                     </div>
+
+                    {/* Lead */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <Label>Lead Text (EN)</Label>
+                        <Textarea
+                          rows={2}
+                          value={sections.why?.data_en?.lead || ""}
+                          onChange={(e) =>
+                            setSections((prev) => ({
+                              ...prev,
+                              why: {
+                                ...prev.why,
+                                data_en: {
+                                  ...prev.why?.data_en,
+                                  lead: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label>Lead Text (BN)</Label>
+                        <Textarea
+                          rows={2}
+                          value={sections.why?.data_bn?.lead || ""}
+                          onChange={(e) =>
+                            setSections((prev) => ({
+                              ...prev,
+                              why: {
+                                ...prev.why,
+                                data_bn: {
+                                  ...prev.why?.data_bn,
+                                  lead: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    {/* 4 Statistics Cards */}
+                    <div className="space-y-3 pt-2">
+                      <div className="border-b border-slate-200 pb-2">
+                        <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                          <BarChart2 size={18} className="text-blue-600" />
+                          <span>Key Statistics & Metrics (4 Cards)</span>
+                        </h4>
+                        <p className="text-xs text-slate-500">
+                          These 4 animated counters highlight the academy&apos;s achievement metrics.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {[0, 1, 2, 3].map((idx) => {
+                          const statEn = sections.why?.data_en?.stats?.[idx] || {};
+                          const statBn = sections.why?.data_bn?.stats?.[idx] || {};
+                          return (
+                            <div
+                              key={idx}
+                              className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3"
+                            >
+                              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                                <span className="text-xs font-bold text-blue-700">Metric #{idx + 1}</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-[11px]">Number</Label>
+                                  <Input
+                                    type="number"
+                                    value={statEn.count ?? ""}
+                                    onChange={(e) =>
+                                      handleWhyStatChange(idx, "count", Number(e.target.value))
+                                    }
+                                    placeholder="12000"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-[11px]">Suffix</Label>
+                                  <Input
+                                    type="text"
+                                    value={statEn.suffix ?? ""}
+                                    onChange={(e) =>
+                                      handleWhyStatChange(idx, "suffix", e.target.value)
+                                    }
+                                    placeholder="+"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <Label className="text-[11px]">Label (EN)</Label>
+                                <Input
+                                  type="text"
+                                  value={statEn.label_en ?? ""}
+                                  onChange={(e) =>
+                                    handleWhyStatChange(idx, "label_en", e.target.value)
+                                  }
+                                  placeholder="Active learners"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-[11px]">Label (BN)</Label>
+                                <Input
+                                  type="text"
+                                  value={statBn.label_bn ?? statEn.label_bn ?? ""}
+                                  onChange={(e) =>
+                                    handleWhyStatChange(idx, "label_bn", e.target.value)
+                                  }
+                                  placeholder="নিয়মিত শিক্ষার্থী"
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Features / Value Pillars */}
+                    <div className="space-y-4 pt-2">
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                        <div>
+                          <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <Sparkles size={18} className="text-blue-600" />
+                            <span>Features & Value Pillars ({((sections.why?.data_en?.features) || []).length})</span>
+                          </h4>
+                          <p className="text-xs text-slate-500">
+                            Cards highlighting the academy&apos;s unique advantages and pedagogy.
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAddWhyFeature}
+                          className="gap-1.5"
+                        >
+                          <Plus size={14} />
+                          <span>Add Feature</span>
+                        </Button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {(sections.why?.data_en?.features || []).map((feat, idx) => {
+                          const featBn = sections.why?.data_bn?.features?.[idx] || {};
+                          return (
+                            <div
+                              key={idx}
+                              className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 relative group"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-blue-700">
+                                  Feature #{idx + 1}
+                                </span>
+                                <Button
+                                  variant="destructive"
+                                  size="icon"
+                                  onClick={() => handleDeleteWhyFeature(idx)}
+                                  className="h-7 w-7 rounded-lg"
+                                  title="Delete Feature"
+                                >
+                                  <Trash2 size={13} />
+                                </Button>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label className="text-xs">Title (EN)</Label>
+                                  <Input
+                                    type="text"
+                                    value={feat.title_en || feat.title || ""}
+                                    onChange={(e) =>
+                                      handleWhyFeatureChange(idx, "title_en", e.target.value)
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Title (BN)</Label>
+                                  <Input
+                                    type="text"
+                                    value={featBn.title_bn || feat.title_bn || ""}
+                                    onChange={(e) =>
+                                      handleWhyFeatureChange(idx, "title_bn", e.target.value)
+                                    }
+                                  />
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label className="text-xs">Description (EN)</Label>
+                                  <Textarea
+                                    rows={2}
+                                    value={feat.desc_en || feat.desc || ""}
+                                    onChange={(e) =>
+                                      handleWhyFeatureChange(idx, "desc_en", e.target.value)
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Description (BN)</Label>
+                                  <Textarea
+                                    rows={2}
+                                    value={featBn.desc_bn || feat.desc_bn || ""}
+                                    onChange={(e) =>
+                                      handleWhyFeatureChange(idx, "desc_bn", e.target.value)
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </CardContent>
                   <CardFooter className="justify-end">
                     <Button
@@ -3240,6 +4135,446 @@ export default function AdminPortalPage() {
                       <Save size={16} />
                       <span>
                         {savingKey === "why" ? "Saving..." : "Save Why Us"}
+                      </span>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              )}
+
+              {/* PRACTICE ARENA SECTION */}
+              {activeSectionKey === "practice" && (
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Interactive Practice Arena</CardTitle>
+                      <CardDescription>
+                        Quiz questions, subject challenges, options, and instant feedback explanations
+                      </CardDescription>
+                    </div>
+                    <Button
+                      onClick={() => handleSaveSection("practice", sections.practice)}
+                      disabled={savingKey === "practice"}
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                    >
+                      <Save size={16} />
+                      <span>
+                        {savingKey === "practice" ? "Saving..." : "Save Practice Arena"}
+                      </span>
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Badge */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <Label>Badge Tag (EN)</Label>
+                        <Input
+                          type="text"
+                          value={sections.practice?.data_en?.badge || ""}
+                          onChange={(e) =>
+                            setSections((prev) => ({
+                              ...prev,
+                              practice: {
+                                ...prev.practice,
+                                data_en: {
+                                  ...prev.practice?.data_en,
+                                  badge: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                          placeholder="Interactive Practice Quiz"
+                        />
+                      </div>
+                      <div>
+                        <Label>Badge Tag (BN)</Label>
+                        <Input
+                          type="text"
+                          value={sections.practice?.data_bn?.badge || ""}
+                          onChange={(e) =>
+                            setSections((prev) => ({
+                              ...prev,
+                              practice: {
+                                ...prev.practice,
+                                data_bn: {
+                                  ...prev.practice?.data_bn,
+                                  badge: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                          placeholder="ইন্টারেক্টিভ কুইজ প্র্যাকটিস"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Heading */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <Label>Heading (EN)</Label>
+                        <Input
+                          type="text"
+                          value={sections.practice?.data_en?.heading || ""}
+                          onChange={(e) =>
+                            setSections((prev) => ({
+                              ...prev,
+                              practice: {
+                                ...prev.practice,
+                                data_en: {
+                                  ...prev.practice?.data_en,
+                                  heading: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label>Heading (BN)</Label>
+                        <Input
+                          type="text"
+                          value={sections.practice?.data_bn?.heading || ""}
+                          onChange={(e) =>
+                            setSections((prev) => ({
+                              ...prev,
+                              practice: {
+                                ...prev.practice,
+                                data_bn: {
+                                  ...prev.practice?.data_bn,
+                                  heading: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    {/* Lead */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <Label>Lead Text (EN)</Label>
+                        <Textarea
+                          rows={2}
+                          value={sections.practice?.data_en?.lead || ""}
+                          onChange={(e) =>
+                            setSections((prev) => ({
+                              ...prev,
+                              practice: {
+                                ...prev.practice,
+                                data_en: {
+                                  ...prev.practice?.data_en,
+                                  lead: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label>Lead Text (BN)</Label>
+                        <Textarea
+                          rows={2}
+                          value={sections.practice?.data_bn?.lead || ""}
+                          onChange={(e) =>
+                            setSections((prev) => ({
+                              ...prev,
+                              practice: {
+                                ...prev.practice,
+                                data_bn: {
+                                  ...prev.practice?.data_bn,
+                                  lead: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    {/* Quiz Tasks Manager */}
+                    <div className="space-y-4 pt-2">
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                        <div>
+                          <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <BookOpen size={18} className="text-blue-600" />
+                            <span>Practice Quiz Tasks ({((sections.practice?.data_en?.tasks) || []).length})</span>
+                          </h4>
+                          <p className="text-xs text-slate-500">
+                            Interactive questions that learners can solve live on the homepage.
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAddPracticeTask}
+                          className="gap-1.5"
+                        >
+                          <Plus size={14} />
+                          <span>Add Quiz Question</span>
+                        </Button>
+                      </div>
+
+                      <div className="space-y-5">
+                        {(sections.practice?.data_en?.tasks || []).map((task, idx) => {
+                          const taskBn = sections.practice?.data_bn?.tasks?.[idx] || {};
+                          const optionsEn = task.options_en || task.options || ["", "", "", ""];
+                          const optionsBn = taskBn.options_bn || task.options_bn || ["", "", "", ""];
+                          const correctIdx = Number(task.correct) || 0;
+
+                          return (
+                            <div
+                              key={idx}
+                              className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 relative"
+                            >
+                              <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
+                                <span className="text-xs font-bold text-blue-700">
+                                  Quiz Challenge #{idx + 1}
+                                </span>
+                                <Button
+                                  variant="destructive"
+                                  size="icon"
+                                  onClick={() => handleDeletePracticeTask(idx)}
+                                  className="h-7 w-7 rounded-lg"
+                                  title="Delete Quiz"
+                                >
+                                  <Trash2 size={13} />
+                                </Button>
+                              </div>
+
+                              {/* Subject */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label className="text-xs">Subject / Category (EN)</Label>
+                                  <Input
+                                    type="text"
+                                    value={task.subject_en || task.subject || ""}
+                                    onChange={(e) =>
+                                      handlePracticeTaskChange(idx, "subject_en", e.target.value)
+                                    }
+                                    placeholder="Physics"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Subject / Category (BN)</Label>
+                                  <Input
+                                    type="text"
+                                    value={taskBn.subject_bn || task.subject_bn || ""}
+                                    onChange={(e) =>
+                                      handlePracticeTaskChange(idx, "subject_bn", e.target.value)
+                                    }
+                                    placeholder="পদার্থবিজ্ঞান"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Question */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label className="text-xs">Question (EN)</Label>
+                                  <Textarea
+                                    rows={2}
+                                    value={task.question_en || task.question || ""}
+                                    onChange={(e) =>
+                                      handlePracticeTaskChange(idx, "question_en", e.target.value)
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Question (BN)</Label>
+                                  <Textarea
+                                    rows={2}
+                                    value={taskBn.question_bn || task.question_bn || ""}
+                                    onChange={(e) =>
+                                      handlePracticeTaskChange(idx, "question_bn", e.target.value)
+                                    }
+                                  />
+                                </div>
+                              </div>
+
+                              {/* 4 Options and Correct Answer Selector */}
+                              <div className="space-y-3 p-4 rounded-xl bg-white border border-slate-200/70">
+                                <div className="flex items-center justify-between">
+                                  <Label className="text-xs font-bold text-slate-800">4 Multiple Choice Options</Label>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-semibold text-slate-600">Correct Answer:</span>
+                                    <select
+                                      value={correctIdx}
+                                      onChange={(e) =>
+                                        handlePracticeTaskChange(idx, "correct", Number(e.target.value))
+                                      }
+                                      className="text-xs font-bold px-2.5 py-1 rounded-lg border border-slate-300 bg-emerald-50 text-emerald-800"
+                                    >
+                                      <option value={0}>Option A (1st)</option>
+                                      <option value={1}>Option B (2nd)</option>
+                                      <option value={2}>Option C (3rd)</option>
+                                      <option value={3}>Option D (4th)</option>
+                                    </select>
+                                  </div>
+                                </div>
+
+                                {[0, 1, 2, 3].map((optIdx) => (
+                                  <div key={optIdx} className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold ${
+                                        correctIdx === optIdx
+                                          ? "bg-emerald-600 text-white"
+                                          : "bg-slate-200 text-slate-700"
+                                      }`}>
+                                        {String.fromCharCode(65 + optIdx)}
+                                      </span>
+                                      <Input
+                                        type="text"
+                                        value={optionsEn[optIdx] || ""}
+                                        onChange={(e) =>
+                                          handlePracticeOptionChange(idx, optIdx, "en", e.target.value)
+                                        }
+                                        placeholder={`Option ${String.fromCharCode(65 + optIdx)} (EN)`}
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-slate-400 font-mono">BN</span>
+                                      <Input
+                                        type="text"
+                                        value={optionsBn[optIdx] || ""}
+                                        onChange={(e) =>
+                                          handlePracticeOptionChange(idx, optIdx, "bn", e.target.value)
+                                        }
+                                        placeholder={`অপশন ${optIdx + 1} (BN)`}
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Explanation */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label className="text-xs">Explanation (EN)</Label>
+                                  <Textarea
+                                    rows={2}
+                                    value={task.explanation_en || task.explanation || ""}
+                                    onChange={(e) =>
+                                      handlePracticeTaskChange(idx, "explanation_en", e.target.value)
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Explanation (BN)</Label>
+                                  <Textarea
+                                    rows={2}
+                                    value={taskBn.explanation_bn || task.explanation_bn || ""}
+                                    onChange={(e) =>
+                                      handlePracticeTaskChange(idx, "explanation_bn", e.target.value)
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="justify-end">
+                    <Button
+                      onClick={() => handleSaveSection("practice", sections.practice)}
+                      disabled={savingKey === "practice"}
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                    >
+                      <Save size={16} />
+                      <span>
+                        {savingKey === "practice" ? "Saving..." : "Save Practice Arena"}
+                      </span>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              )}
+
+              {/* RUNNING MARQUEE SECTION */}
+              {activeSectionKey === "marquee" && (
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Running Marquee Banner</CardTitle>
+                      <CardDescription>
+                        Animated ticker ribbon items displayed beneath the hero section
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAddMarqueeItem}
+                        className="gap-1.5"
+                      >
+                        <Plus size={14} />
+                        <span>Add Highlight</span>
+                      </Button>
+                      <Button
+                        onClick={() => handleSaveSection("marquee", sections.marquee)}
+                        disabled={savingKey === "marquee"}
+                        className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                      >
+                        <Save size={16} />
+                        <span>
+                          {savingKey === "marquee" ? "Saving..." : "Save Marquee"}
+                        </span>
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {(sections.marquee?.data_en?.items || []).map((item, idx) => {
+                      const itemBn = sections.marquee?.data_bn?.items?.[idx] || "";
+                      return (
+                        <div
+                          key={idx}
+                          className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col md:flex-row items-start md:items-center gap-3"
+                        >
+                          <span className="text-xs font-bold text-slate-500 w-16 shrink-0">
+                            #{idx + 1}
+                          </span>
+                          <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <Input
+                              type="text"
+                              value={item || ""}
+                              onChange={(e) =>
+                                handleMarqueeItemChange(idx, "en", e.target.value)
+                              }
+                              placeholder="Highlight in English..."
+                            />
+                            <Input
+                              type="text"
+                              value={itemBn || ""}
+                              onChange={(e) =>
+                                handleMarqueeItemChange(idx, "bn", e.target.value)
+                              }
+                              placeholder="বাংলায় হাইলাইট..."
+                            />
+                          </div>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => handleDeleteMarqueeItem(idx)}
+                            className="h-8 w-8 rounded-lg shrink-0"
+                            title="Delete Item"
+                          >
+                            <Trash2 size={13} />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                  <CardFooter className="justify-end">
+                    <Button
+                      onClick={() => handleSaveSection("marquee", sections.marquee)}
+                      disabled={savingKey === "marquee"}
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                    >
+                      <Save size={16} />
+                      <span>
+                        {savingKey === "marquee" ? "Saving..." : "Save Marquee"}
                       </span>
                     </Button>
                   </CardFooter>
@@ -3284,112 +4619,265 @@ export default function AdminPortalPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {(sections.voices?.data_en?.testimonials || []).map(
-                      (t, idx) => (
-                        <div
-                          key={idx}
-                          className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 relative group"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-blue-700">
-                              Testimonial #{idx + 1}
-                            </span>
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              onClick={() => handleDeleteTestimonial(idx)}
-                              className="h-7 w-7 rounded-lg"
-                              title="Delete testimonial"
-                            >
-                              <Trash2 size={13} />
-                            </Button>
-                          </div>
+                    {/* Headings */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-2">
+                      <div>
+                        <Label>Heading (EN)</Label>
+                        <Input
+                          type="text"
+                          value={sections.voices?.data_en?.heading || ""}
+                          onChange={(e) =>
+                            setSections((prev) => ({
+                              ...prev,
+                              voices: {
+                                ...prev.voices,
+                                data_en: {
+                                  ...prev.voices?.data_en,
+                                  heading: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label>Heading (BN)</Label>
+                        <Input
+                          type="text"
+                          value={sections.voices?.data_bn?.heading || ""}
+                          onChange={(e) =>
+                            setSections((prev) => ({
+                              ...prev,
+                              voices: {
+                                ...prev.voices,
+                                data_bn: {
+                                  ...prev.voices?.data_bn,
+                                  heading: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <Label>Student Name</Label>
-                              <Input
-                                type="text"
-                                value={t.name || ""}
-                                onChange={(e) => {
-                                  const newTestimonials = [
-                                    ...(sections.voices?.data_en
-                                      ?.testimonials || []),
-                                  ];
-                                  newTestimonials[idx] = {
-                                    ...newTestimonials[idx],
-                                    name: e.target.value,
-                                  };
-                                  setSections((prev) => ({
-                                    ...prev,
-                                    voices: {
-                                      ...prev.voices,
-                                      data_en: {
-                                        ...prev.voices?.data_en,
-                                        testimonials: newTestimonials,
-                                      },
-                                    },
-                                  }));
-                                }}
-                              />
+                    {(sections.voices?.data_en?.testimonials || []).map(
+                      (t, idx) => {
+                        const tBn = sections.voices?.data_bn?.testimonials?.[idx] || {};
+                        return (
+                          <div
+                            key={idx}
+                            className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 relative group"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-blue-700">
+                                Testimonial #{idx + 1}
+                              </span>
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                onClick={() => handleDeleteTestimonial(idx)}
+                                className="h-7 w-7 rounded-lg"
+                                title="Delete testimonial"
+                              >
+                                <Trash2 size={13} />
+                              </Button>
                             </div>
-                            <div>
-                              <Label>Role / Batch</Label>
-                              <Input
-                                type="text"
-                                value={t.role || ""}
-                                onChange={(e) => {
-                                  const newTestimonials = [
-                                    ...(sections.voices?.data_en
-                                      ?.testimonials || []),
-                                  ];
-                                  newTestimonials[idx] = {
-                                    ...newTestimonials[idx],
-                                    role: e.target.value,
-                                  };
-                                  setSections((prev) => ({
-                                    ...prev,
-                                    voices: {
-                                      ...prev.voices,
-                                      data_en: {
-                                        ...prev.voices?.data_en,
-                                        testimonials: newTestimonials,
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div>
+                                <Label className="text-xs">Student Name (EN)</Label>
+                                <Input
+                                  type="text"
+                                  value={t.name || ""}
+                                  onChange={(e) => {
+                                    const newTestimonials = [
+                                      ...(sections.voices?.data_en?.testimonials || []),
+                                    ];
+                                    newTestimonials[idx] = {
+                                      ...newTestimonials[idx],
+                                      name: e.target.value,
+                                    };
+                                    setSections((prev) => ({
+                                      ...prev,
+                                      voices: {
+                                        ...prev.voices,
+                                        data_en: {
+                                          ...prev.voices?.data_en,
+                                          testimonials: newTestimonials,
+                                        },
                                       },
-                                    },
-                                  }));
-                                }}
-                              />
+                                    }));
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Student Name (BN)</Label>
+                                <Input
+                                  type="text"
+                                  value={tBn.name || t.name_bn || ""}
+                                  onChange={(e) => {
+                                    const newTestimonialsBn = [
+                                      ...(sections.voices?.data_bn?.testimonials || []),
+                                    ];
+                                    newTestimonialsBn[idx] = {
+                                      ...newTestimonialsBn[idx],
+                                      name: e.target.value,
+                                    };
+                                    setSections((prev) => ({
+                                      ...prev,
+                                      voices: {
+                                        ...prev.voices,
+                                        data_bn: {
+                                          ...prev.voices?.data_bn,
+                                          testimonials: newTestimonialsBn,
+                                        },
+                                      },
+                                    }));
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Student Photo URL</Label>
+                                <Input
+                                  type="text"
+                                  value={t.image_url || t.img || ""}
+                                  onChange={(e) => {
+                                    const newTestimonials = [
+                                      ...(sections.voices?.data_en?.testimonials || []),
+                                    ];
+                                    newTestimonials[idx] = {
+                                      ...newTestimonials[idx],
+                                      image_url: e.target.value,
+                                    };
+                                    setSections((prev) => ({
+                                      ...prev,
+                                      voices: {
+                                        ...prev.voices,
+                                        data_en: {
+                                          ...prev.voices?.data_en,
+                                          testimonials: newTestimonials,
+                                        },
+                                      },
+                                    }));
+                                  }}
+                                  placeholder="https://... or /uploads/..."
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <Label className="text-xs">Batch / Course Role (EN)</Label>
+                                <Input
+                                  type="text"
+                                  value={t.role || ""}
+                                  onChange={(e) => {
+                                    const newTestimonials = [
+                                      ...(sections.voices?.data_en?.testimonials || []),
+                                    ];
+                                    newTestimonials[idx] = {
+                                      ...newTestimonials[idx],
+                                      role: e.target.value,
+                                    };
+                                    setSections((prev) => ({
+                                      ...prev,
+                                      voices: {
+                                        ...prev.voices,
+                                        data_en: {
+                                          ...prev.voices?.data_en,
+                                          testimonials: newTestimonials,
+                                        },
+                                      },
+                                    }));
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Batch / Course Role (BN)</Label>
+                                <Input
+                                  type="text"
+                                  value={tBn.role || t.role_bn || ""}
+                                  onChange={(e) => {
+                                    const newTestimonialsBn = [
+                                      ...(sections.voices?.data_bn?.testimonials || []),
+                                    ];
+                                    newTestimonialsBn[idx] = {
+                                      ...newTestimonialsBn[idx],
+                                      role: e.target.value,
+                                    };
+                                    setSections((prev) => ({
+                                      ...prev,
+                                      voices: {
+                                        ...prev.voices,
+                                        data_bn: {
+                                          ...prev.voices?.data_bn,
+                                          testimonials: newTestimonialsBn,
+                                        },
+                                      },
+                                    }));
+                                  }}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <Label className="text-xs">Quote (EN)</Label>
+                                <Textarea
+                                  rows={2}
+                                  value={t.quote || ""}
+                                  onChange={(e) => {
+                                    const newTestimonials = [
+                                      ...(sections.voices?.data_en?.testimonials || []),
+                                    ];
+                                    newTestimonials[idx] = {
+                                      ...newTestimonials[idx],
+                                      quote: e.target.value,
+                                    };
+                                    setSections((prev) => ({
+                                      ...prev,
+                                      voices: {
+                                        ...prev.voices,
+                                        data_en: {
+                                          ...prev.voices?.data_en,
+                                          testimonials: newTestimonials,
+                                        },
+                                      },
+                                    }));
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Quote (BN)</Label>
+                                <Textarea
+                                  rows={2}
+                                  value={tBn.quote || t.quote_bn || ""}
+                                  onChange={(e) => {
+                                    const newTestimonialsBn = [
+                                      ...(sections.voices?.data_bn?.testimonials || []),
+                                    ];
+                                    newTestimonialsBn[idx] = {
+                                      ...newTestimonialsBn[idx],
+                                      quote: e.target.value,
+                                    };
+                                    setSections((prev) => ({
+                                      ...prev,
+                                      voices: {
+                                        ...prev.voices,
+                                        data_bn: {
+                                          ...prev.voices?.data_bn,
+                                          testimonials: newTestimonialsBn,
+                                        },
+                                      },
+                                    }));
+                                  }}
+                                />
+                              </div>
                             </div>
                           </div>
-                          <div>
-                            <Label>Quote</Label>
-                            <Textarea
-                              rows={2}
-                              value={t.quote || ""}
-                              onChange={(e) => {
-                                const newTestimonials = [
-                                  ...(sections.voices?.data_en?.testimonials ||
-                                    []),
-                                ];
-                                newTestimonials[idx] = {
-                                  ...newTestimonials[idx],
-                                  quote: e.target.value,
-                                };
-                                setSections((prev) => ({
-                                  ...prev,
-                                  voices: {
-                                    ...prev.voices,
-                                    data_en: {
-                                      ...prev.voices?.data_en,
-                                      testimonials: newTestimonials,
-                                    },
-                                  },
-                                }));
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ),
+                        );
+                      }
                     )}
                     {(sections.voices?.data_en?.testimonials || []).length ===
                       0 && (
@@ -3418,14 +4906,14 @@ export default function AdminPortalPage() {
                 </Card>
               )}
 
-              {/* FAQ SECTION WITH ADD & DELETE CONTROLS */}
+              {/* FAQ SECTION WITH BILINGUAL & REORDER CONTROLS */}
               {activeSectionKey === "faq" && (
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                      <CardTitle>Frequently Asked Questions</CardTitle>
+                      <CardTitle>Frequently Asked Questions (FAQ)</CardTitle>
                       <CardDescription>
-                        Helpful answers for prospective student applicants
+                        Bilingual FAQs and answers for prospective students and parents
                       </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
@@ -3451,82 +4939,211 @@ export default function AdminPortalPage() {
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {(sections.faq?.data_en?.items || []).map((faq, idx) => (
-                      <div
-                        key={idx}
-                        className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 relative"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-blue-700">
-                            FAQ Question #{idx + 1}
-                          </span>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            onClick={() => handleDeleteFaq(idx)}
-                            className="h-7 w-7 rounded-lg"
-                            title="Delete FAQ"
-                          >
-                            <Trash2 size={13} />
-                          </Button>
-                        </div>
+                  <CardContent className="space-y-6">
+                    {/* Header Titles */}
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-4">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Section Heading & Subtitle
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label>Question</Label>
+                          <Label>Section Heading (EN)</Label>
                           <Input
                             type="text"
-                            value={faq.q || ""}
-                            onChange={(e) => {
-                              const newFaqs = [
-                                ...(sections.faq?.data_en?.items || []),
-                              ];
-                              newFaqs[idx] = {
-                                ...newFaqs[idx],
-                                q: e.target.value,
-                              };
+                            value={sections.faq?.data_en?.heading || ""}
+                            onChange={(e) =>
                               setSections((prev) => ({
                                 ...prev,
                                 faq: {
                                   ...prev.faq,
                                   data_en: {
                                     ...prev.faq?.data_en,
-                                    items: newFaqs,
+                                    heading: e.target.value,
                                   },
                                 },
-                              }));
-                            }}
+                              }))
+                            }
                           />
                         </div>
                         <div>
-                          <Label>Answer</Label>
+                          <Label>Section Heading (BN)</Label>
+                          <Input
+                            type="text"
+                            value={sections.faq?.data_bn?.heading || ""}
+                            onChange={(e) =>
+                              setSections((prev) => ({
+                                ...prev,
+                                faq: {
+                                  ...prev.faq,
+                                  data_bn: {
+                                    ...prev.faq?.data_bn,
+                                    heading: e.target.value,
+                                  },
+                                },
+                              }))
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label>Lead Subtitle (EN)</Label>
                           <Textarea
                             rows={2}
-                            value={faq.a || ""}
-                            onChange={(e) => {
-                              const newFaqs = [
-                                ...(sections.faq?.data_en?.items || []),
-                              ];
-                              newFaqs[idx] = {
-                                ...newFaqs[idx],
-                                a: e.target.value,
-                              };
+                            value={sections.faq?.data_en?.lead || ""}
+                            onChange={(e) =>
                               setSections((prev) => ({
                                 ...prev,
                                 faq: {
                                   ...prev.faq,
                                   data_en: {
                                     ...prev.faq?.data_en,
-                                    items: newFaqs,
+                                    lead: e.target.value,
                                   },
                                 },
-                              }));
-                            }}
+                              }))
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label>Lead Subtitle (BN)</Label>
+                          <Textarea
+                            rows={2}
+                            value={sections.faq?.data_bn?.lead || ""}
+                            onChange={(e) =>
+                              setSections((prev) => ({
+                                ...prev,
+                                faq: {
+                                  ...prev.faq,
+                                  data_bn: {
+                                    ...prev.faq?.data_bn,
+                                    lead: e.target.value,
+                                  },
+                                },
+                              }))
+                            }
                           />
                         </div>
                       </div>
-                    ))}
+                    </div>
+
+                    {/* FAQ Items */}
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Questions & Answers ({sections.faq?.data_en?.items?.length || 0})
+                      </h4>
+                      {(sections.faq?.data_en?.items || []).map((faqEn, idx) => {
+                        const faqBn = sections.faq?.data_bn?.items?.[idx] || {};
+                        return (
+                          <div
+                            key={idx}
+                            className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4 relative"
+                          >
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                              <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full">
+                                FAQ Question #{idx + 1}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-slate-500 hover:text-slate-900"
+                                  onClick={() => handleMoveFaq(idx, "up")}
+                                  disabled={idx === 0}
+                                  title="Move Up"
+                                >
+                                  <ArrowUp size={14} />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-slate-500 hover:text-slate-900"
+                                  onClick={() => handleMoveFaq(idx, "down")}
+                                  disabled={
+                                    idx ===
+                                    (sections.faq?.data_en?.items?.length || 1) - 1
+                                  }
+                                  title="Move Down"
+                                >
+                                  <ArrowDown size={14} />
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="icon"
+                                  onClick={() => handleDeleteFaq(idx)}
+                                  className="h-7 w-7 rounded-lg ml-2"
+                                  title="Delete FAQ"
+                                >
+                                  <Trash2 size={13} />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <Label>Question (EN)</Label>
+                                <Input
+                                  type="text"
+                                  value={faqEn.q || ""}
+                                  onChange={(e) =>
+                                    handleFaqItemChange(idx, "en", "q", e.target.value)
+                                  }
+                                />
+                              </div>
+                              <div>
+                                <Label>Question (BN)</Label>
+                                <Input
+                                  type="text"
+                                  value={faqBn.q || ""}
+                                  onChange={(e) =>
+                                    handleFaqItemChange(idx, "bn", "q", e.target.value)
+                                  }
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <Label>Answer (EN)</Label>
+                                <Textarea
+                                  rows={3}
+                                  value={faqEn.a || ""}
+                                  onChange={(e) =>
+                                    handleFaqItemChange(idx, "en", "a", e.target.value)
+                                  }
+                                />
+                              </div>
+                              <div>
+                                <Label>Answer (BN)</Label>
+                                <Textarea
+                                  rows={3}
+                                  value={faqBn.a || ""}
+                                  onChange={(e) =>
+                                    handleFaqItemChange(idx, "bn", "a", e.target.value)
+                                  }
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {(!sections.faq?.data_en?.items ||
+                        sections.faq.data_en.items.length === 0) && (
+                        <div className="text-center py-6 text-sm text-slate-400">
+                          No FAQ items added yet. Click &quot;Add FAQ Item&quot; above.
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
-                  <CardFooter className="justify-end">
+                  <CardFooter className="flex justify-between items-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddFaq}
+                      className="gap-1.5"
+                    >
+                      <Plus size={14} />
+                      <span>Add FAQ Item</span>
+                    </Button>
                     <Button
                       onClick={() => handleSaveSection("faq", sections.faq)}
                       disabled={savingKey === "faq"}
@@ -3546,9 +5163,9 @@ export default function AdminPortalPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                      <CardTitle>Call To Action Banner</CardTitle>
+                      <CardTitle>Call To Action Banner (Join Section)</CardTitle>
                       <CardDescription>
-                        Bottom conversion trigger and reservation prompt
+                        Bottom conversion trigger, seat reservation prompt, and background visual
                       </CardDescription>
                     </div>
                     <Button
@@ -3562,7 +5179,8 @@ export default function AdminPortalPage() {
                       </span>
                     </Button>
                   </CardHeader>
-                  <CardContent className="space-y-5">
+                  <CardContent className="space-y-6">
+                    {/* Headings */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div>
                         <Label>Heading (EN)</Label>
@@ -3602,6 +5220,149 @@ export default function AdminPortalPage() {
                           }
                         />
                       </div>
+                    </div>
+
+                    {/* Leads */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <Label>Lead Subtitle (EN)</Label>
+                        <Textarea
+                          rows={3}
+                          value={sections.cta?.data_en?.lead || ""}
+                          onChange={(e) =>
+                            setSections((prev) => ({
+                              ...prev,
+                              cta: {
+                                ...prev.cta,
+                                data_en: {
+                                  ...prev.cta?.data_en,
+                                  lead: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label>Lead Subtitle (BN)</Label>
+                        <Textarea
+                          rows={3}
+                          value={sections.cta?.data_bn?.lead || ""}
+                          onChange={(e) =>
+                            setSections((prev) => ({
+                              ...prev,
+                              cta: {
+                                ...prev.cta,
+                                data_bn: {
+                                  ...prev.cta?.data_bn,
+                                  lead: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    {/* Button Labels */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <Label>Button Label (EN)</Label>
+                        <Input
+                          type="text"
+                          placeholder="e.g. Confirm Seat Reservation →"
+                          value={sections.cta?.data_en?.submit_btn || ""}
+                          onChange={(e) =>
+                            setSections((prev) => ({
+                              ...prev,
+                              cta: {
+                                ...prev.cta,
+                                data_en: {
+                                  ...prev.cta?.data_en,
+                                  submit_btn: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label>Button Label (BN)</Label>
+                        <Input
+                          type="text"
+                          placeholder="e.g. আসন সংরক্ষণ নিশ্চিত করুন →"
+                          value={sections.cta?.data_bn?.submit_btn || ""}
+                          onChange={(e) =>
+                            setSections((prev) => ({
+                              ...prev,
+                              cta: {
+                                ...prev.cta,
+                                data_bn: {
+                                  ...prev.cta?.data_bn,
+                                  submit_btn: e.target.value,
+                                },
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    {/* Background Visual */}
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm font-bold">Banner Background Photo</Label>
+                          <p className="text-xs text-slate-500">
+                            High-resolution photo displayed behind the parallax reservation form
+                          </p>
+                        </div>
+                        <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                          <Upload size={13} />
+                          <span>Upload Photo</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleCtaBgUpload}
+                            disabled={savingKey === "cta-bg"}
+                          />
+                        </label>
+                      </div>
+
+                      <Input
+                        type="text"
+                        placeholder="https://... or /uploads/..."
+                        value={sections.cta?.media?.background_image || ""}
+                        onChange={(e) =>
+                          setSections((prev) => ({
+                            ...prev,
+                            cta: {
+                              ...prev.cta,
+                              media: {
+                                ...prev.cta?.media,
+                                background_image: e.target.value,
+                              },
+                            },
+                          }))
+                        }
+                      />
+
+                      {sections.cta?.media?.background_image && (
+                        <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-900 h-36">
+                          <img
+                            src={resolveMediaUrl(
+                              sections.cta.media.background_image,
+                              BACKEND_ORIGIN
+                            )}
+                            alt="CTA Background Preview"
+                            className="w-full h-full object-cover opacity-60"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-sm bg-black/30 backdrop-blur-[1px]">
+                            CTA Background Preview
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                   <CardFooter className="justify-end">

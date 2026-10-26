@@ -30,6 +30,8 @@ import {
   useDynamicContent,
 } from "../lib/DynamicContentContext";
 import SmartImage from "../components/SmartImage";
+import { resolveMediaUrl } from "../lib/utils";
+import { BACKEND_ORIGIN } from "../lib/api";
 
 /* Optimised (next/image) picture; shows a neutral skeleton until the image decodes */
 const Pic = ({ k, src, alt = "", cls = "", style, children, priority = false, sizes }) => {
@@ -605,8 +607,18 @@ function Hero({ onPhotoClick }) {
 }
 
 function Marquee() {
-  const { dict } = useI18n();
-  const items = dict.marquee;
+  const { dict, lang } = useI18n();
+  const { dynamicSections } = useDynamicContent();
+  const marqueeSection = dynamicSections?.marquee;
+  const marqueeData =
+    (lang === "en" ? marqueeSection?.data_en : marqueeSection?.data_bn) ||
+    marqueeSection?.data_en ||
+    marqueeSection?.data_bn;
+
+  const items =
+    marqueeData?.items && Array.isArray(marqueeData.items) && marqueeData.items.length > 0
+      ? marqueeData.items
+      : dict.marquee;
   const row = [...items, ...items];
   return (
     <div className="marq" aria-hidden>
@@ -639,16 +651,37 @@ function Story() {
   const heading = storyData?.heading || dict.story.h2;
   const lead = storyData?.lead || dict.story.lead;
 
-  let timeline = dict.story.timeline;
-  if (storyData?.timeline && Array.isArray(storyData.timeline) && storyData.timeline.length > 0) {
-    timeline = storyData.timeline.map((item) => {
-      if (Array.isArray(item)) return item;
-      return [item.year || "", item.text || ""];
-    });
+  let rawTimeline = storyData?.timeline;
+  if (!rawTimeline || !Array.isArray(rawTimeline) || rawTimeline.length === 0) {
+    rawTimeline = dict.story.timeline;
   }
 
-  const imgStory = storySection?.media?.image_story;
-  const imgStory2 = storySection?.media?.image_story2;
+  const timelineItems = rawTimeline.map((item) => {
+    if (Array.isArray(item)) {
+      return {
+        basis: "yearly",
+        period: item[0] || "",
+        text: item[1] || "",
+      };
+    }
+    const basis = item.basis || "yearly";
+    const period =
+      lang === "bn"
+        ? (item.year_bn || item.year || item.year_en || item.period_bn || item.period || "")
+        : (item.year_en || item.year || item.year_bn || item.period_en || item.period || "");
+    const text =
+      lang === "bn"
+        ? (item.text_bn || item.text || item.text_en || "")
+        : (item.text_en || item.text || item.text_bn || "");
+    return {
+      basis,
+      period,
+      text,
+    };
+  });
+
+  const imgStory = resolveMediaUrl(storySection?.media?.image_story, BACKEND_ORIGIN);
+  const imgStory2 = resolveMediaUrl(storySection?.media?.image_story2, BACKEND_ORIGIN);
 
   const ref = useRef(null);
   const { scrollYProgress: p } = useScroll({
@@ -689,16 +722,24 @@ function Story() {
           </motion.h2>
           <p className="lead">{lead}</p>
           <div className="tl">
-            {timeline.map(([y, t], i) => (
+            {timelineItems.map((item, i) => (
               <motion.div
-                key={`${y}-${i}`}
+                key={`${item.period}-${i}`}
+                className="tl-item"
                 initial={{ opacity: 0, x: -24 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ delay: i * 0.05 }}
               >
-                <b>{y}</b>
-                <p>{t}</p>
+                <div className="tl-head">
+                  <b className="tl-period">{item.period}</b>
+                  <span className={`tl-pill ${item.basis === "monthly" ? "tl-monthly" : "tl-yearly"}`}>
+                    {item.basis === "monthly"
+                      ? (lang === "bn" ? "মাসিক মাইলফলক" : "Monthly Milestone")
+                      : (lang === "bn" ? "বার্ষিক অর্জন" : "Yearly Milestone")}
+                  </span>
+                </div>
+                <p>{item.text}</p>
               </motion.div>
             ))}
           </div>
@@ -1175,15 +1216,63 @@ function Mentors({ onEnrol }) {
 }
 
 function PracticeArena() {
-  const { dict, toBn } = useI18n();
-  const tasks = dict.practice.tasks;
+  const { dict, lang, toBn } = useI18n();
+  const { dynamicSections } = useDynamicContent();
+  const practiceSection = dynamicSections?.practice;
+  const practiceData =
+    (lang === "en" ? practiceSection?.data_en : practiceSection?.data_bn) ||
+    practiceSection?.data_en ||
+    practiceSection?.data_bn;
+
+  const badge = practiceData?.badge || dict.practice.badge;
+  const heading = practiceData?.heading || dict.practice.h2;
+  const lead = practiceData?.lead || dict.practice.lead;
+
+  let tasks = dict.practice.tasks;
+  if (
+    practiceData?.tasks &&
+    Array.isArray(practiceData.tasks) &&
+    practiceData.tasks.length > 0
+  ) {
+    tasks = practiceData.tasks.map((t, idx) => {
+      const fallbackTask = dict.practice.tasks[idx] || dict.practice.tasks[0] || {};
+      return {
+        subject:
+          lang === "bn"
+            ? (t.subject_bn || t.subject || t.subject_en || fallbackTask.subject || "")
+            : (t.subject_en || t.subject || t.subject_bn || fallbackTask.subject || ""),
+        topic:
+          t.topic ||
+          (lang === "bn"
+            ? (t.subject_bn || t.subject || "")
+            : (t.subject_en || t.subject || "")),
+        question:
+          lang === "bn"
+            ? (t.question_bn || t.question || t.question_en || fallbackTask.question || "")
+            : (t.question_en || t.question || t.question_bn || fallbackTask.question || ""),
+        options:
+          lang === "bn" && t.options_bn && Array.isArray(t.options_bn)
+            ? t.options_bn
+            : (t.options || t.options_en || fallbackTask.options || []),
+        correct: typeof t.correct === "number" ? t.correct : Number(t.correct) || 0,
+        explanation:
+          lang === "bn"
+            ? (t.explanation_bn || t.explanation || t.explanation_en || fallbackTask.explanation || "")
+            : (t.explanation_en || t.explanation || t.explanation_bn || fallbackTask.explanation || ""),
+        mentorNote:
+          lang === "bn"
+            ? (t.mentorNote_bn || t.mentorNote || "")
+            : (t.mentorNote_en || t.mentorNote || ""),
+      };
+    });
+  }
 
   const [activeTab, setActiveTab] = useState(0);
   const [selectedOpt, setSelectedOpt] = useState(null);
   const [streak, setStreak] = useState(0);
   const [completed, setCompleted] = useState({});
 
-  const task = tasks[activeTab] || tasks[0];
+  const task = tasks[activeTab] || tasks[0] || {};
 
   const handleSelect = (idx) => {
     if (selectedOpt !== null) return;
@@ -1207,12 +1296,12 @@ function PracticeArena() {
         <div
           style={{ textAlign: "center", maxWidth: "680px", margin: "0 auto" }}
         >
-          <span className="quiz-badge">{dict.practice.badge}</span>
+          <span className="quiz-badge">{badge}</span>
           <h2 className="h2" style={{ margin: "12px auto 0" }}>
-            {dict.practice.h2}
+            {heading}
           </h2>
           <p className="lead" style={{ margin: "14px auto 0" }}>
-            {dict.practice.lead}
+            {lead}
           </p>
         </div>
 
@@ -1289,9 +1378,11 @@ function PracticeArena() {
                   </span>
                 </div>
                 <p>{task.explanation}</p>
-                <p style={{ fontStyle: "italic", opacity: 0.85 }}>
-                  “{task.mentorNote}”
-                </p>
+                {task.mentorNote && (
+                  <p style={{ fontStyle: "italic", opacity: 0.85 }}>
+                    “{task.mentorNote}”
+                  </p>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -1572,14 +1663,39 @@ function Why() {
     whySection?.data_en ||
     whySection?.data_bn;
 
-  const stats = dict.why.stats;
+  const kicker = whyData?.kicker || "";
   const heading = whyData?.heading || dict.why.h2;
+  const lead = whyData?.lead || "";
 
+  // Dynamic stats
+  let stats = dict.why.stats;
+  if (whyData?.stats && Array.isArray(whyData.stats) && whyData.stats.length > 0) {
+    stats = whyData.stats.map((s, idx) => {
+      if (Array.isArray(s)) return s;
+      const count = Number(s.count) || 0;
+      const suffix = s.suffix !== undefined ? s.suffix : "+";
+      const label =
+        lang === "bn"
+          ? (s.label_bn || s.label || s.label_en || dict.why.stats[idx]?.[2] || "")
+          : (s.label_en || s.label || s.label_bn || dict.why.stats[idx]?.[2] || "");
+      return [count, suffix, label];
+    });
+  }
+
+  // Dynamic features / value pillars
   let items = dict.why.items;
   if (whyData?.features && Array.isArray(whyData.features) && whyData.features.length > 0) {
-    items = whyData.features.map((f) => {
+    items = whyData.features.map((f, idx) => {
       if (Array.isArray(f)) return f;
-      return [f.title || "", f.desc || ""];
+      const title =
+        lang === "bn"
+          ? (f.title_bn || f.title || f.title_en || dict.why.items[idx]?.[0] || "")
+          : (f.title_en || f.title || f.title_bn || dict.why.items[idx]?.[0] || "");
+      const desc =
+        lang === "bn"
+          ? (f.desc_bn || f.desc || f.desc_en || dict.why.items[idx]?.[1] || "")
+          : (f.desc_en || f.desc || f.desc_bn || dict.why.items[idx]?.[1] || "");
+      return [title, desc];
     });
   }
 
@@ -1597,7 +1713,27 @@ function Why() {
           ))}
         </div>
         <div style={{ marginTop: 110 }}>
+          {kicker && (
+            <span
+              style={{
+                display: "block",
+                marginBottom: 8,
+                color: "var(--red)",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                fontSize: "0.85rem",
+                letterSpacing: "0.08em",
+              }}
+            >
+              {kicker}
+            </span>
+          )}
           <h2 className="h2">{heading}</h2>
+          {lead && (
+            <p className="lead" style={{ marginTop: 12, maxWidth: "60ch" }}>
+              {lead}
+            </p>
+          )}
           <div className="why">
             {items.map(([h, t], i) => (
               <motion.div
@@ -1636,14 +1772,23 @@ function Voices() {
     Array.isArray(voicesData.testimonials) &&
     voicesData.testimonials.length > 0
   ) {
-    voices = voicesData.testimonials.map((t) => {
+    voices = voicesData.testimonials.map((t, idx) => {
       if (Array.isArray(t)) return t;
-      return [
-        t.quote || "",
-        t.name || "",
-        t.role || "",
-        t.image_url || t.img || "art1",
-      ];
+      const quote =
+        lang === "bn"
+          ? (t.quote_bn || t.quote || t.quote_en || dict.voices.testimonials[idx]?.[0] || "")
+          : (t.quote_en || t.quote || t.quote_bn || dict.voices.testimonials[idx]?.[0] || "");
+      const name =
+        lang === "bn"
+          ? (t.name_bn || t.name || t.name_en || dict.voices.testimonials[idx]?.[1] || "")
+          : (t.name_en || t.name || t.name_bn || dict.voices.testimonials[idx]?.[1] || "");
+      const role =
+        lang === "bn"
+          ? (t.role_bn || t.role || t.role_en || dict.voices.testimonials[idx]?.[2] || "")
+          : (t.role_en || t.role || t.role_bn || dict.voices.testimonials[idx]?.[2] || "");
+      const imgRaw = t.image_url || t.img || dict.voices.testimonials[idx]?.[3] || "art1";
+      const img = resolveMediaUrl(imgRaw, BACKEND_ORIGIN);
+      return [quote, name, role, img];
     });
   }
 
@@ -1734,10 +1879,21 @@ function Faq() {
   const heading = faqData?.heading || dict.faq.h2;
   const lead = faqData?.lead || dict.faq.lead;
 
-  const items =
-    faqData?.items && Array.isArray(faqData.items) && faqData.items.length > 0
-      ? faqData.items
-      : dict.faq.items;
+  let items = dict.faq.items;
+  if (faqData?.items && Array.isArray(faqData.items) && faqData.items.length > 0) {
+    items = faqData.items.map((item, idx) => {
+      const fallbackItem = dict.faq.items[idx] || dict.faq.items[0] || {};
+      const q =
+        lang === "bn"
+          ? (item.q_bn || item.q || item.q_en || fallbackItem.q || "")
+          : (item.q_en || item.q || item.q_bn || fallbackItem.q || "");
+      const a =
+        lang === "bn"
+          ? (item.a_bn || item.a || item.a_en || fallbackItem.a || "")
+          : (item.a_en || item.a || item.a_bn || fallbackItem.a || "");
+      return { q, a };
+    });
+  }
 
   const [openIdx, setOpenIdx] = useState(0);
 
@@ -1806,7 +1962,7 @@ function Join({ enrolledCourse }) {
   const heading = ctaData?.heading || dict.join.h2;
   const lead = ctaData?.lead || dict.join.lead;
   const submitBtnText = ctaData?.submit_btn || dict.join.submitBtn;
-  const bgImage = ctaSection?.media?.background_image;
+  const bgImage = resolveMediaUrl(ctaSection?.media?.background_image, BACKEND_ORIGIN);
 
   const courseList = dynamicCourses.map((c) => ({
     id: c.id,
