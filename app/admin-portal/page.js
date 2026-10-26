@@ -70,8 +70,8 @@ import {
   PieChart,
   Pie,
 } from "recharts";
-import { API_BASE } from "../../lib/api";
-import { cacheBustUrl } from "../../lib/utils";
+import { API_BASE, BACKEND_ORIGIN } from "../../lib/api";
+import { cacheBustUrl, resolveMediaUrl } from "../../lib/utils";
 import { Button } from "../../components/ui/button";
 import {
   Dialog,
@@ -863,6 +863,77 @@ export default function AdminPortalPage() {
     }
   };
 
+  const handleLogoUpload = async (e) => {
+    const file = e.target?.files?.[0] || e;
+    if (!file) return;
+    try {
+      const data = await uploadImage(file, "branding", "logo-upload");
+      if (data?.publicUrl) {
+        const updated = { ...(settings || {}), logo_url: data.publicUrl };
+        setSettings(updated);
+        const res = await apiFetch("/settings", {
+          method: "PUT",
+          body: JSON.stringify(updated),
+        });
+        if (res?.data) {
+          setSettings(res.data);
+        }
+        showToast("Official logo uploaded and published across website!", "success");
+        refreshMedia();
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("onushilon_content_invalidated"));
+        }
+      }
+    } catch (err) {
+      showToast(err.message || "Failed to upload logo", "error");
+    } finally {
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    setSavingKey("logo-remove");
+    try {
+      const updated = { ...(settings || {}), logo_url: null };
+      setSettings(updated);
+      const res = await apiFetch("/settings", {
+        method: "PUT",
+        body: JSON.stringify(updated),
+      });
+      if (res?.data) {
+        setSettings(res.data);
+      }
+      showToast("Logo removed. Default 'অ' monogram restored.", "success");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("onushilon_content_invalidated"));
+      }
+    } catch (err) {
+      showToast(err.message || "Failed to remove logo", "error");
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  const handleSetAsLogo = async (publicUrl) => {
+    try {
+      const updated = { ...(settings || {}), logo_url: publicUrl };
+      setSettings(updated);
+      const res = await apiFetch("/settings", {
+        method: "PUT",
+        body: JSON.stringify(updated),
+      });
+      if (res?.data) {
+        setSettings(res.data);
+      }
+      showToast("Selected media set as official Academy logo!", "success");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("onushilon_content_invalidated"));
+      }
+    } catch (err) {
+      showToast(err.message || "Could not set logo", "error");
+    }
+  };
+
   // ===========================================================================
   // MENTORS CRUD
   // ===========================================================================
@@ -1289,9 +1360,17 @@ export default function AdminPortalPage() {
 
         <Card className="w-full max-w-md border-slate-200 bg-white shadow-sm backdrop-blur-2xl relative z-10">
           <CardHeader className="text-center pb-2">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-blue-500 to-indigo-600 text-white font-black text-2xl flex items-center justify-center mx-auto shadow-sm mb-4">
-              অ
-            </div>
+            {settings?.logo_url ? (
+              <img
+                src={cacheBustUrl(resolveMediaUrl(settings.logo_url, BACKEND_ORIGIN))}
+                alt="Onushilon Logo"
+                className="w-16 h-16 rounded-2xl object-contain bg-white p-2 border border-slate-200 shadow-sm mx-auto mb-4"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-blue-500 to-indigo-600 text-white font-black text-2xl flex items-center justify-center mx-auto shadow-sm mb-4">
+                অ
+              </div>
+            )}
             <CardTitle className="text-2xl font-bold text-slate-900 tracking-tight">
               Onushilon CRM Portal
             </CardTitle>
@@ -1380,9 +1459,17 @@ export default function AdminPortalPage() {
         {/* Brand Header */}
         <div className="p-6 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-xl flex items-center justify-center shadow-sm">
-              অ
-            </div>
+            {settings?.logo_url ? (
+              <img
+                src={cacheBustUrl(resolveMediaUrl(settings.logo_url, BACKEND_ORIGIN))}
+                alt="Onushilon Logo"
+                className="w-10 h-10 rounded-xl object-contain bg-slate-50 p-1 border border-slate-200 shadow-sm"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-xl flex items-center justify-center shadow-sm">
+                অ
+              </div>
+            )}
             <div>
               <div className="font-bold text-base text-slate-900 tracking-tight">
                 Onushilon
@@ -1490,13 +1577,13 @@ export default function AdminPortalPage() {
                 : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
-            <MessageSquare
+            <Sliders
               size={18}
               className={
                 currentTab === "contact" ? "text-blue-700" : "text-slate-500"
               }
             />
-            <span>WhatsApp & Contact</span>
+            <span>Brand Logo & Settings</span>
           </button>
 
           <button
@@ -1610,7 +1697,8 @@ export default function AdminPortalPage() {
                   "Executive Dashboard & Live Analytics"}
                 {currentTab === "courses" && "Course & Pricing Management"}
                 {currentTab === "sections" && "Landing Page Sections & Texts"}
-                {currentTab === "contact" && "WhatsApp & Contact Configuration"}
+                {currentTab === "contact" &&
+                  "Academy Branding, Logo & Settings"}
                 {currentTab === "mentors" && "Faculty Mentors"}
                 {currentTab === "leads" && "Student Leads & Inquiries CRM"}
                 {currentTab === "media" && "Supabase Storage Bucket Explorer"}
@@ -3534,10 +3622,205 @@ export default function AdminPortalPage() {
           )}
 
           {/* ===================================================================
-              TAB 4: CONTACT & WHATSAPP CONFIGURATION
+              TAB 4: BRAND LOGO & CONTACT CONFIGURATION
              =================================================================== */}
           {currentTab === "contact" && settings && (
             <form onSubmit={handleSaveContact} className="space-y-6 w-full">
+              {/* =======================================================
+                  CARD 1: ACADEMY LOGO & BRAND IDENTITY
+                 ======================================================= */}
+              <Card className="w-full border-slate-200 shadow-sm overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 bg-slate-50/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                      <ImageIcon size={20} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-base font-bold text-slate-900">
+                          Academy Logo & Brand Identity
+                        </CardTitle>
+                        {settings.logo_url ? (
+                          <Badge variant="success" className="text-[10px] font-bold py-0.5">
+                            Custom Logo Active
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] py-0.5 border-slate-200 text-slate-600">
+                            Default &quot;অ&quot; Monogram Active
+                          </Badge>
+                        )}
+                      </div>
+                      <CardDescription className="text-xs text-slate-500 mt-0.5">
+                        Upload your official institution logo. Automatically synced across the website header, hero banner, mobile menu, footer, and admin portal.
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {settings.logo_url && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRemoveLogo}
+                        disabled={savingKey === "logo-remove"}
+                        className="text-xs font-semibold text-rose-600 border-rose-200 hover:bg-rose-50 hover:border-rose-300 gap-1.5"
+                      >
+                        <Trash2 size={13} />
+                        <span>{savingKey === "logo-remove" ? "Removing..." : "Reset to Default"}</span>
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+
+                <CardContent className="p-6 space-y-6">
+                  {/* Two-Column: Left = Dual Live Previews, Right = Upload & URL Controls */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    
+                    {/* Left: Dual Contrast Live Previews (Light Mode & Dark Mode) */}
+                    <div className="lg:col-span-6 space-y-3">
+                      <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Live Visual Preview
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* Light Background Preview (Simulates Navbar & Hero) */}
+                        <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col items-center justify-between min-h-[160px] relative overflow-hidden group shadow-sm">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 self-start">
+                            Navbar / Light Canvas
+                          </span>
+                          <div className="flex-1 flex items-center justify-center p-3 w-full">
+                            {uploadPreview ? (
+                              <img
+                                src={uploadPreview}
+                                alt="Uploading Preview"
+                                className="max-h-14 max-w-full object-contain animate-pulse"
+                              />
+                            ) : settings.logo_url ? (
+                              <img
+                                src={cacheBustUrl(resolveMediaUrl(settings.logo_url, BACKEND_ORIGIN))}
+                                alt="Academy Logo"
+                                className="max-h-14 max-w-full object-contain transition-transform group-hover:scale-105 duration-200"
+                              />
+                            ) : (
+                              <div className="flex items-center gap-2 font-display font-extrabold text-xl text-slate-800">
+                                <span className="w-8 h-8 rounded-full bg-red-600 text-white grid place-items-center text-sm font-bold">
+                                  অ
+                                </span>
+                                <span>Onushilon</span>
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-slate-500">
+                            {settings.logo_url ? "Crisp on light surfaces" : "Default fallback badge"}
+                          </span>
+                        </div>
+
+                        {/* Dark Background Preview (Simulates Footer & Mobile Sheet) */}
+                        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 flex flex-col items-center justify-between min-h-[160px] relative overflow-hidden group shadow-sm">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 self-start">
+                            Footer / Dark Canvas
+                          </span>
+                          <div className="flex-1 flex items-center justify-center p-3 w-full">
+                            {uploadPreview ? (
+                              <img
+                                src={uploadPreview}
+                                alt="Uploading Preview"
+                                className="max-h-14 max-w-full object-contain animate-pulse"
+                              />
+                            ) : settings.logo_url ? (
+                              <img
+                                src={cacheBustUrl(resolveMediaUrl(settings.logo_url, BACKEND_ORIGIN))}
+                                alt="Academy Logo"
+                                className="max-h-14 max-w-full object-contain transition-transform group-hover:scale-105 duration-200"
+                              />
+                            ) : (
+                              <div className="flex items-center gap-2 font-display font-extrabold text-xl text-white">
+                                <span className="w-8 h-8 rounded-full bg-red-600 text-white grid place-items-center text-sm font-bold">
+                                  অ
+                                </span>
+                                <span>Onushilon</span>
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-slate-400">
+                            {settings.logo_url ? "Crisp on dark surfaces" : "Default fallback badge"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Upload Dropzone & Direct URL Input */}
+                    <div className="lg:col-span-6 space-y-4">
+                      <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Upload or Change Logo
+                      </div>
+
+                      {/* Dropzone File Input */}
+                      <label
+                        className={`relative border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 ${
+                          savingKey === "logo-upload"
+                            ? "border-blue-500 bg-blue-50/50 pointer-events-none"
+                            : "border-slate-300 hover:border-blue-500 hover:bg-blue-50/30 bg-slate-50/50"
+                        }`}
+                      >
+                        <input
+                          type="file"
+                          accept="image/png,image/svg+xml,image/webp,image/jpeg,image/jpg"
+                          onChange={handleLogoUpload}
+                          className="sr-only"
+                          disabled={savingKey === "logo-upload"}
+                        />
+                        <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-blue-600 mb-3">
+                          <Upload size={22} className={savingKey === "logo-upload" ? "animate-bounce" : ""} />
+                        </div>
+                        <div className="text-sm font-bold text-slate-900">
+                          {savingKey === "logo-upload"
+                            ? "Uploading and optimizing logo..."
+                            : "Click or drag & drop to upload new logo"}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1 max-w-xs">
+                          Supports SVG, PNG, WebP or JPG (Transparent background recommended)
+                        </p>
+                      </label>
+
+                      {/* Progress bar during upload */}
+                      {savingKey === "logo-upload" && uploadProgress !== null && (
+                        <UploadStatus progress={uploadProgress} label="Uploading logo to cloud storage..." />
+                      )}
+
+                      {/* Manual Direct URL Input */}
+                      <div className="pt-1">
+                        <Label className="text-xs font-bold text-slate-700">Or Image URL</Label>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Input
+                            type="text"
+                            value={settings.logo_url || ""}
+                            onChange={(e) =>
+                              setSettings({ ...settings, logo_url: e.target.value })
+                            }
+                            placeholder="https://... or /uploads/branding/..."
+                            className="text-xs font-mono"
+                          />
+                          {settings.logo_url && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => copyToClipboard(settings.logo_url)}
+                              className="text-xs shrink-0 gap-1 border-slate-200"
+                              title="Copy URL"
+                            >
+                              {copiedUrl === settings.logo_url ? <Check size={12} className="text-blue-700" /> : <Copy size={12} />}
+                              <span>{copiedUrl === settings.logo_url ? "Copied" : "Copy"}</span>
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card className="w-full">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
@@ -4173,7 +4456,7 @@ export default function AdminPortalPage() {
 
               {/* Folder Filter Tabs */}
               <TabsList>
-                {["all", "courses", "mentors", "moments", "photos", "general"].map(
+                {["all", "branding", "courses", "mentors", "moments", "photos", "general"].map(
                   (folder) => (
                     <TabsTrigger
                       key={folder}
@@ -4239,6 +4522,22 @@ export default function AdminPortalPage() {
                           <span>
                             {copiedUrl === m.publicUrl ? "Copied!" : "Copy"}
                           </span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSetAsLogo(m.publicUrl);
+                          }}
+                          title={settings?.logo_url === m.publicUrl ? "Current Active Logo" : "Set as Official Academy Logo"}
+                          className={`h-7 w-7 border shrink-0 ${
+                            settings?.logo_url === m.publicUrl
+                              ? "text-blue-700 bg-blue-50 border-blue-300 font-bold"
+                              : "text-slate-500 hover:text-blue-700 hover:bg-blue-50 border-slate-200"
+                          }`}
+                        >
+                          <Sparkles size={12} />
                         </Button>
                         <Button
                           variant="ghost"

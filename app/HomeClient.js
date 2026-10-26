@@ -125,6 +125,8 @@ function Tilt({ children, className, onClick }) {
 
 function Nav() {
   const { dict, isBn } = useI18n();
+  const { settings } = useDynamicContent();
+  const currentLogo = settings?.logoUrl || LOGO;
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState("home");
   const [scrolled, setScrolled] = useState(false);
@@ -167,9 +169,13 @@ function Nav() {
             exit={{ y: -70, opacity: 0, x: "-50%" }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           >
-            <a href="#home" className="logo">
-              {LOGO ? (
-                <img src={LOGO} alt={isBn ? "অনুশীলন" : "Onushilon"} />
+            <a href="#home" className="logo" aria-label={isBn ? "অনুশীলন" : "Onushilon"}>
+              {currentLogo ? (
+                <img
+                  src={currentLogo}
+                  alt={isBn ? "অনুশীলন" : "Onushilon"}
+                  className="logo-img"
+                />
               ) : (
                 <>
                   <i>অ</i>
@@ -204,31 +210,55 @@ function Nav() {
         )}
       </AnimatePresence>
       {!scrolled && (
-        <div className="hero-top-controls">
-          <div className="hero-lang-wrap">
-            <LanguageSwitcher />
-          </div>
-          <motion.button
-            key="hero-menu-btn"
-            className={`hero-menu-btn ${open ? "open" : ""}`}
-            onClick={() => setOpen(!open)}
-            aria-label={open ? "Close menu" : "Open menu"}
-            aria-expanded={open}
-            initial={{ opacity: 0, scale: 0.8, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: -10 }}
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.94 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            style={{ position: "static" }}
+        <>
+          <motion.a
+            href="#home"
+            className="hero-top-brand"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            aria-label={isBn ? "অনুশীলন" : "Onushilon"}
           >
-            <span className="burger-icon">
-              <span className="line l1" />
-              <span className="line l2" />
-              <span className="line l3" />
-            </span>
-          </motion.button>
-        </div>
+            {currentLogo ? (
+              <img
+                src={currentLogo}
+                alt={isBn ? "অনুশীলন" : "Onushilon"}
+                className="logo-img"
+              />
+            ) : (
+              <>
+                <i>অ</i>
+                <span>{isBn ? "অনুশীলন" : "Onushilon"}</span>
+              </>
+            )}
+          </motion.a>
+          <div className="hero-top-controls">
+            <div className="hero-lang-wrap">
+              <LanguageSwitcher />
+            </div>
+            <motion.button
+              key="hero-menu-btn"
+              className={`hero-menu-btn ${open ? "open" : ""}`}
+              onClick={() => setOpen(!open)}
+              aria-label={open ? "Close menu" : "Open menu"}
+              aria-expanded={open}
+              initial={{ opacity: 0, scale: 0.8, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: -10 }}
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.94 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              style={{ position: "static" }}
+            >
+              <span className="burger-icon">
+                <span className="line l1" />
+                <span className="line l2" />
+                <span className="line l3" />
+              </span>
+            </motion.button>
+          </div>
+        </>
       )}
       <AnimatePresence>
         {open && (
@@ -246,6 +276,20 @@ function Nav() {
             >
               ✕
             </button>
+            <div className="sheet-brand-header">
+              {currentLogo ? (
+                <img
+                  src={currentLogo}
+                  alt={isBn ? "অনুশীলন" : "Onushilon"}
+                  className="sheet-logo-img"
+                />
+              ) : (
+                <div className="sheet-logo-fallback">
+                  <i>অ</i>
+                  <span>{isBn ? "অনুশীলন" : "Onushilon"}</span>
+                </div>
+              )}
+            </div>
             {navItems.map(([id, l], i) => (
               <motion.a
                 key={id}
@@ -1972,14 +2016,26 @@ function FloatingCallButton() {
 }
 
 function Footer() {
-  const { dict, toBn } = useI18n();
+  const { dict, toBn, isBn } = useI18n();
   const { settings } = useDynamicContent();
+  const currentLogo = settings?.logoUrl || LOGO;
 
   return (
     <footer>
       <div className="wrap fg">
         <div>
-          <b style={{ fontSize: "1.5rem" }}>{dict.footer.brand}</b>
+          {currentLogo ? (
+            <div className="footer-brand-logo-wrap">
+              <img
+                src={currentLogo}
+                alt={isBn ? "অনুশীলন" : "Onushilon"}
+                className="footer-logo-img"
+              />
+              <b style={{ fontSize: "1.5rem" }}>{dict.footer.brand}</b>
+            </div>
+          ) : (
+            <b style={{ fontSize: "1.5rem" }}>{dict.footer.brand}</b>
+          )}
           <span style={{ opacity: 0.7 }}>{dict.footer.tagline}</span>
         </div>
         <div>
