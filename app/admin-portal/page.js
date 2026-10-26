@@ -192,6 +192,15 @@ export default function AdminPortalPage() {
   // Section Sub-Tab
   const [activeSectionKey, setActiveSectionKey] = useState("hero");
 
+  // Backup & Restore / Text Export State
+  const [backupModalOpen, setBackupModalOpen] = useState(false);
+  const [backupModalTab, setBackupModalTab] = useState("export"); // "export" | "import"
+  const [backupIncludeSettings, setBackupIncludeSettings] = useState(true);
+  const [backupImportText, setBackupImportText] = useState("");
+  const [backupCopied, setBackupCopied] = useState(false);
+  const [backupRestoring, setBackupRestoring] = useState(false);
+  const [sectionRawModal, setSectionRawModal] = useState(null); // { open, sectionId, name, text, copied, saving }
+
   // Hero Section Customizer State (Language editor sub-tab, preview device, preview lang)
   const [heroEditLang, setHeroEditLang] = useState("en"); // "en" | "bn"
   const [heroPreviewLang, setHeroPreviewLang] = useState("en"); // "en" | "bn"
@@ -777,6 +786,239 @@ export default function AdminPortalPage() {
       showToast(err.message, "error");
     } finally {
       setSavingKey(null);
+    }
+  };
+
+  // -------------------------------------------------------------
+  // CONTENT BACKUP & RESTORE / TEXT EXPORT & IMPORT
+  // -------------------------------------------------------------
+  const generateBackupData = (includeSettings = true) => {
+    const backup = {
+      exported_at: new Date().toISOString(),
+      site_name: settings?.site_title || "Onushilon Academy",
+      sections: { ...sections },
+    };
+    if (includeSettings && settings) {
+      backup.settings = { ...settings };
+    }
+    return JSON.stringify(backup, null, 2);
+  };
+
+  const copyBackupToClipboard = async () => {
+    try {
+      const text = generateBackupData(backupIncludeSettings);
+      await navigator.clipboard.writeText(text);
+      setBackupCopied(true);
+      setTimeout(() => setBackupCopied(false), 2500);
+      showToast("All section texts copied to clipboard!", "success");
+    } catch (err) {
+      showToast("Could not copy to clipboard: " + err.message, "error");
+    }
+  };
+
+  const downloadBackupFile = (extension = "json") => {
+    try {
+      const text = generateBackupData(backupIncludeSettings);
+      const blob = new Blob([text], {
+        type: extension === "json" ? "application/json" : "text/plain;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const dateStr = new Date().toISOString().split("T")[0];
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `onushilon_content_backup_${dateStr}.${extension}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Backup exported as .${extension} successfully!`, "success");
+    } catch (err) {
+      showToast("Failed to download backup: " + err.message, "error");
+    }
+  };
+
+  const handleBackupFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result;
+      if (typeof text === "string") {
+        setBackupImportText(text);
+        showToast(
+          `Loaded backup file "${file.name}"! Click "Restore All Sections" to apply.`,
+          "info"
+        );
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleRestoreBackup = async () => {
+    if (!backupImportText.trim()) {
+      showToast("Please paste your backup text before restoring.", "warning");
+      return;
+    }
+
+    setBackupRestoring(true);
+    try {
+      let parsed;
+      try {
+        parsed = JSON.parse(backupImportText);
+      } catch (e) {
+        throw new Error(
+          "Invalid JSON format. Please paste valid backup JSON text."
+        );
+      }
+
+      // Identify sections to restore
+      let sectionsToRestore = {};
+      if (parsed.sections && typeof parsed.sections === "object") {
+        sectionsToRestore = parsed.sections;
+      } else if (
+        parsed.hero ||
+        parsed.story ||
+        parsed.why ||
+        parsed.practice ||
+        parsed.marquee ||
+        parsed.voices ||
+        parsed.faq ||
+        parsed.cta
+      ) {
+        sectionsToRestore = parsed;
+      } else if (Array.isArray(parsed)) {
+        parsed.forEach((sec) => {
+          if (sec.section_id) {
+            sectionsToRestore[sec.section_id] = sec;
+          }
+        });
+      } else {
+        throw new Error("No recognized section data found in the pasted text.");
+      }
+
+      const sectionKeys = Object.keys(sectionsToRestore);
+      if (sectionKeys.length === 0) {
+        throw new Error("No sections found to restore.");
+      }
+
+      let restoredCount = 0;
+      const updatedSections = { ...sections };
+
+      for (const key of sectionKeys) {
+        const sectionPayload = sectionsToRestore[key];
+        try {
+          const res = await apiFetch(`/sections/${key}`, {
+            method: "PUT",
+            body: JSON.stringify(sectionPayload),
+          });
+          if (res?.data) {
+            updatedSections[key] = res.data;
+            restoredCount++;
+          }
+        } catch (err) {
+          console.warn(`Could not save section ${key}:`, err);
+        }
+      }
+
+      if (parsed.settings && typeof parsed.settings === "object") {
+        try {
+          const res = await apiFetch("/settings", {
+            method: "PUT",
+            body: JSON.stringify(parsed.settings),
+          });
+          if (res?.data) {
+            setSettings(res.data);
+          }
+        } catch (err) {
+          console.warn("Could not save settings:", err);
+        }
+      }
+
+      setSections(updatedSections);
+      showToast(
+        `Successfully restored and saved ${restoredCount} sections to live database!`,
+        "success"
+      );
+      setBackupModalOpen(false);
+      setBackupImportText("");
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setBackupRestoring(false);
+    }
+  };
+
+  // Section-Level Raw Text / JSON Export & Import
+  const handleOpenSectionRawText = (sectionId, sectionName) => {
+    const currentSection = sections[sectionId] || {};
+    setSectionRawModal({
+      open: true,
+      sectionId,
+      name: sectionName || currentSection.name || sectionId,
+      text: JSON.stringify(currentSection, null, 2),
+      copied: false,
+      saving: false,
+    });
+  };
+
+  const handleCopySectionRawText = async () => {
+    if (!sectionRawModal?.text) return;
+    try {
+      await navigator.clipboard.writeText(sectionRawModal.text);
+      setSectionRawModal((prev) => (prev ? { ...prev, copied: true } : null));
+      setTimeout(() => {
+        setSectionRawModal((prev) =>
+          prev ? { ...prev, copied: false } : null
+        );
+      }, 2000);
+      showToast("Section text copied to clipboard!", "success");
+    } catch (err) {
+      showToast("Failed to copy: " + err.message, "error");
+    }
+  };
+
+  const handleApplySectionRawText = async () => {
+    if (!sectionRawModal?.text?.trim()) return;
+    setSectionRawModal((prev) => ({ ...prev, saving: true }));
+    try {
+      let parsed;
+      try {
+        parsed = JSON.parse(sectionRawModal.text);
+      } catch (e) {
+        throw new Error("Invalid JSON format. Please ensure valid JSON syntax.");
+      }
+
+      const sectionId = sectionRawModal.sectionId;
+      let payload = {};
+      if (parsed.data_en || parsed.data_bn || parsed.media) {
+        payload = {
+          ...(sections[sectionId] || {}),
+          ...parsed,
+          section_id: sectionId,
+        };
+      } else {
+        payload = {
+          ...(sections[sectionId] || {}),
+          data_en: { ...(sections[sectionId]?.data_en || {}), ...parsed },
+        };
+      }
+
+      const res = await apiFetch(`/sections/${sectionId}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+
+      if (res?.data) {
+        setSections((prev) => ({ ...prev, [sectionId]: res.data }));
+        showToast(
+          `Section "${sectionRawModal.name}" restored and saved to Supabase!`,
+          "success"
+        );
+        setSectionRawModal(null);
+      }
+    } catch (err) {
+      showToast(err.message, "error");
+      setSectionRawModal((prev) => (prev ? { ...prev, saving: false } : null));
     }
   };
 
@@ -2121,6 +2363,18 @@ export default function AdminPortalPage() {
               <span className="sm:hidden">{refreshing ? "..." : "Sync"}</span>
             </Button>
 
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setBackupModalOpen(true)}
+              title="Backup or restore all texts & settings as text/JSON so you never lose data"
+              className="px-3 py-1.5 rounded-xl border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+            >
+              <FileText size={13} className="text-amber-700" />
+              <span className="hidden md:inline">Backup &amp; Restore</span>
+              <span className="md:hidden">Backup</span>
+            </Button>
+
             <Link
               href="/"
               target="_blank"
@@ -2798,24 +3052,36 @@ export default function AdminPortalPage() {
                     </TabsTrigger>
                   ))}
                 </TabsList>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleRefresh("sections")}
-                  disabled={refreshing}
-                  title="Refresh sections and texts directly from live database"
-                  className="gap-1.5 border-slate-200 hover:bg-blue-50 text-blue-700 text-xs font-semibold shrink-0"
-                >
-                  <RefreshCw
-                    size={14}
-                    className={
-                      refreshing ? "animate-spin text-blue-700" : ""
-                    }
-                  />
-                  <span>
-                    {refreshing ? "Refreshing..." : "Refresh Sections"}
-                  </span>
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setBackupModalOpen(true)}
+                    title="Export all texts or paste backup to restore lost data"
+                    className="gap-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 hover:border-blue-300 text-blue-700 text-xs font-bold shadow-sm"
+                  >
+                    <FileText size={14} className="text-blue-600" />
+                    <span>Export / Restore Texts</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleRefresh("sections")}
+                    disabled={refreshing}
+                    title="Refresh sections and texts directly from live database"
+                    className="gap-1.5 border-slate-200 hover:bg-blue-50 text-blue-700 text-xs font-semibold shrink-0"
+                  >
+                    <RefreshCw
+                      size={14}
+                      className={
+                        refreshing ? "animate-spin text-blue-700" : ""
+                      }
+                    />
+                    <span>
+                      {refreshing ? "Refreshing..." : "Refresh Sections"}
+                    </span>
+                  </Button>
+                </div>
               </div>
 
               {/* HERO SECTION EDITOR & LIVE PREVIEW */}
@@ -2937,14 +3203,27 @@ export default function AdminPortalPage() {
                               Configure rotating headline words, subtitles, text sizes, and action buttons.
                             </CardDescription>
                           </div>
-                          <Button
-                            onClick={handleSaveHero}
-                            disabled={savingKey === "hero"}
-                            className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold shrink-0 shadow-sm"
-                          >
-                            <Save size={16} />
-                            <span>{savingKey === "hero" ? "Saving..." : "Save Hero"}</span>
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenSectionRawText("hero", "Hero Banner")}
+                              className="gap-1.5 text-xs font-semibold"
+                            >
+                              <Copy size={13} />
+                              <span className="hidden sm:inline">Export / Paste Text</span>
+                              <span className="sm:hidden">Text</span>
+                            </Button>
+                            <Button
+                              onClick={handleSaveHero}
+                              disabled={savingKey === "hero"}
+                              className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold shrink-0 shadow-sm"
+                            >
+                              <Save size={16} />
+                              <span>{savingKey === "hero" ? "Saving..." : "Save Hero"}</span>
+                            </Button>
+                          </div>
                         </CardHeader>
 
                         <CardContent className="space-y-6 pt-5">
@@ -3447,18 +3726,36 @@ export default function AdminPortalPage() {
                         Academy founding history, philosophy, and monthly/yearly growth milestones
                       </CardDescription>
                     </div>
-                    <Button
-                      onClick={() => handleSaveSection("story", sections.story)}
-                      disabled={savingKey === "story"}
-                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                    >
-                      <Save size={16} />
-                      <span>
-                        {savingKey === "story"
-                          ? "Saving..."
-                          : "Save Story Section"}
-                      </span>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          handleOpenSectionRawText(
+                            "story",
+                            "Our Story & Timeline"
+                          )
+                        }
+                        className="gap-1.5 text-xs font-semibold"
+                      >
+                        <Copy size={13} />
+                        <span className="hidden sm:inline">Export / Paste Text</span>
+                        <span className="sm:hidden">Text</span>
+                      </Button>
+                      <Button
+                        onClick={() => handleSaveSection("story", sections.story)}
+                        disabled={savingKey === "story"}
+                        className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                      >
+                        <Save size={16} />
+                        <span>
+                          {savingKey === "story"
+                            ? "Saving..."
+                            : "Save Story Section"}
+                        </span>
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {/* Headings */}
@@ -3814,16 +4111,34 @@ export default function AdminPortalPage() {
                         Core value pillars, learning differentiators, and 4 animated statistics
                       </CardDescription>
                     </div>
-                    <Button
-                      onClick={() => handleSaveSection("why", sections.why)}
-                      disabled={savingKey === "why"}
-                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                    >
-                      <Save size={16} />
-                      <span>
-                        {savingKey === "why" ? "Saving..." : "Save Why Us"}
-                      </span>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          handleOpenSectionRawText(
+                            "why",
+                            "Why Us & Key Metrics"
+                          )
+                        }
+                        className="gap-1.5 text-xs font-semibold"
+                      >
+                        <Copy size={13} />
+                        <span className="hidden sm:inline">Export / Paste Text</span>
+                        <span className="sm:hidden">Text</span>
+                      </Button>
+                      <Button
+                        onClick={() => handleSaveSection("why", sections.why)}
+                        disabled={savingKey === "why"}
+                        className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                      >
+                        <Save size={16} />
+                        <span>
+                          {savingKey === "why" ? "Saving..." : "Save Why Us"}
+                        </span>
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {/* Kicker */}
@@ -4151,16 +4466,34 @@ export default function AdminPortalPage() {
                         Quiz questions, subject challenges, options, and instant feedback explanations
                       </CardDescription>
                     </div>
-                    <Button
-                      onClick={() => handleSaveSection("practice", sections.practice)}
-                      disabled={savingKey === "practice"}
-                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                    >
-                      <Save size={16} />
-                      <span>
-                        {savingKey === "practice" ? "Saving..." : "Save Practice Arena"}
-                      </span>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          handleOpenSectionRawText(
+                            "practice",
+                            "Interactive Practice Arena"
+                          )
+                        }
+                        className="gap-1.5 text-xs font-semibold"
+                      >
+                        <Copy size={13} />
+                        <span className="hidden sm:inline">Export / Paste Text</span>
+                        <span className="sm:hidden">Text</span>
+                      </Button>
+                      <Button
+                        onClick={() => handleSaveSection("practice", sections.practice)}
+                        disabled={savingKey === "practice"}
+                        className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                      >
+                        <Save size={16} />
+                        <span>
+                          {savingKey === "practice" ? "Saving..." : "Save Practice Arena"}
+                        </span>
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {/* Badge */}
@@ -4513,6 +4846,22 @@ export default function AdminPortalPage() {
                         <span>Add Highlight</span>
                       </Button>
                       <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          handleOpenSectionRawText(
+                            "marquee",
+                            "Running Marquee Banner"
+                          )
+                        }
+                        className="gap-1.5 text-xs font-semibold"
+                      >
+                        <Copy size={13} />
+                        <span className="hidden sm:inline">Export / Paste Text</span>
+                        <span className="sm:hidden">Text</span>
+                      </Button>
+                      <Button
                         onClick={() => handleSaveSection("marquee", sections.marquee)}
                         disabled={savingKey === "marquee"}
                         className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
@@ -4601,6 +4950,22 @@ export default function AdminPortalPage() {
                       >
                         <Plus size={14} />
                         <span>Add Testimonial</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          handleOpenSectionRawText(
+                            "voices",
+                            "Student Testimonials"
+                          )
+                        }
+                        className="gap-1.5 text-xs font-semibold"
+                      >
+                        <Copy size={13} />
+                        <span className="hidden sm:inline">Export / Paste Text</span>
+                        <span className="sm:hidden">Text</span>
                       </Button>
                       <Button
                         onClick={() =>
@@ -4928,6 +5293,22 @@ export default function AdminPortalPage() {
                         <span>Add FAQ Item</span>
                       </Button>
                       <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          handleOpenSectionRawText(
+                            "faq",
+                            "Frequently Asked Questions"
+                          )
+                        }
+                        className="gap-1.5 text-xs font-semibold"
+                      >
+                        <Copy size={13} />
+                        <span className="hidden sm:inline">Export / Paste Text</span>
+                        <span className="sm:hidden">Text</span>
+                      </Button>
+                      <Button
                         onClick={() => handleSaveSection("faq", sections.faq)}
                         disabled={savingKey === "faq"}
                         className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
@@ -5168,16 +5549,34 @@ export default function AdminPortalPage() {
                         Bottom conversion trigger, seat reservation prompt, and background visual
                       </CardDescription>
                     </div>
-                    <Button
-                      onClick={() => handleSaveSection("cta", sections.cta)}
-                      disabled={savingKey === "cta"}
-                      className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                    >
-                      <Save size={16} />
-                      <span>
-                        {savingKey === "cta" ? "Saving..." : "Save CTA Banner"}
-                      </span>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          handleOpenSectionRawText(
+                            "cta",
+                            "Call To Action Banner"
+                          )
+                        }
+                        className="gap-1.5 text-xs font-semibold"
+                      >
+                        <Copy size={13} />
+                        <span className="hidden sm:inline">Export / Paste Text</span>
+                        <span className="sm:hidden">Text</span>
+                      </Button>
+                      <Button
+                        onClick={() => handleSaveSection("cta", sections.cta)}
+                        disabled={savingKey === "cta"}
+                        className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                      >
+                        <Save size={16} />
+                        <span>
+                          {savingKey === "cta" ? "Saving..." : "Save CTA Banner"}
+                        </span>
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {/* Headings */}
@@ -7214,6 +7613,265 @@ export default function AdminPortalPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* ===================================================================
+          MODAL: CONTENT BACKUP & TEXT RESTORE (GLOBAL)
+         =================================================================== */}
+      <Dialog open={backupModalOpen} onOpenChange={setBackupModalOpen}>
+        <DialogContent className="max-w-3xl w-full">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="flex items-center gap-2">
+                  <FileText className="text-blue-600" size={20} />
+                  <span>Content Backup &amp; Text Restore</span>
+                </DialogTitle>
+                <DialogDescription>
+                  Export all dynamic texts as text/JSON so you can copy and paste them back anytime without retyping.
+                </DialogDescription>
+              </div>
+              <DialogClose onClick={() => setBackupModalOpen(false)} />
+            </div>
+          </DialogHeader>
+
+          <DialogBody className="space-y-4">
+            {/* Modal Tabs: Export vs Import */}
+            <div className="flex border-b border-slate-200 gap-2 pb-2">
+              <button
+                type="button"
+                onClick={() => setBackupModalTab("export")}
+                className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors flex items-center gap-2 ${
+                  backupModalTab === "export"
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <Download size={15} />
+                <span>Export / Copy Texts</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setBackupModalTab("import")}
+                className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors flex items-center gap-2 ${
+                  backupModalTab === "import"
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <Upload size={15} />
+                <span>Import / Restore Texts</span>
+              </button>
+            </div>
+
+            {backupModalTab === "export" && (
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={backupIncludeSettings}
+                      onChange={(e) => setBackupIncludeSettings(e.target.checked)}
+                      className="rounded text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>Include Contact &amp; Brand Settings</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={copyBackupToClipboard}
+                      className="gap-1.5 text-xs font-bold"
+                    >
+                      {backupCopied ? (
+                        <>
+                          <Check size={14} className="text-emerald-600" />
+                          <span className="text-emerald-600">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={14} />
+                          <span>Copy All Text</span>
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => downloadBackupFile("json")}
+                      className="gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Download size={14} />
+                      <span>Download .json</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => downloadBackupFile("txt")}
+                      className="gap-1.5 text-xs font-medium text-slate-600"
+                    >
+                      <span>.txt</span>
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <textarea
+                    readOnly
+                    rows={12}
+                    value={generateBackupData(backupIncludeSettings)}
+                    className="w-full font-mono text-xs p-3 rounded-xl bg-slate-900 text-emerald-400 border border-slate-800 focus:outline-none select-all"
+                  />
+                  <span className="absolute top-2 right-2 text-[10px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded">
+                    Read-only (Click &quot;Copy All Text&quot; above)
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {backupModalTab === "import" && (
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-amber-50/70 rounded-xl border border-amber-200">
+                  <div className="text-xs text-amber-900">
+                    <span className="font-bold">Paste exported text below</span> or upload a saved backup file to restore all your texts and milestones immediately.
+                  </div>
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-amber-300 text-amber-900 hover:bg-amber-100 transition-colors shrink-0">
+                    <Upload size={13} />
+                    <span>Upload File</span>
+                    <input
+                      type="file"
+                      accept=".json,.txt"
+                      className="hidden"
+                      onChange={handleBackupFileUpload}
+                    />
+                  </label>
+                </div>
+
+                <textarea
+                  rows={12}
+                  placeholder='Paste your backup JSON text here, e.g. { "sections": { ... } }'
+                  value={backupImportText}
+                  onChange={(e) => setBackupImportText(e.target.value)}
+                  className="w-full font-mono text-xs p-3 rounded-xl bg-white border border-slate-300 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+
+                <div className="flex items-center justify-between pt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setBackupImportText("")}
+                    disabled={!backupImportText}
+                    className="text-xs text-slate-500"
+                  >
+                    Clear Text
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleRestoreBackup}
+                    disabled={backupRestoring || !backupImportText.trim()}
+                    className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                  >
+                    <CheckCircle2 size={16} />
+                    <span>{backupRestoring ? "Restoring to Live Site..." : "Restore All Sections"}</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===================================================================
+          MODAL: SECTION-LEVEL RAW TEXT / JSON
+         =================================================================== */}
+      <Dialog
+        open={Boolean(sectionRawModal?.open)}
+        onOpenChange={(open) => !open && setSectionRawModal(null)}
+      >
+        <DialogContent className="max-w-2xl w-full">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="flex items-center gap-2">
+                  <FileText className="text-blue-600" size={18} />
+                  <span>
+                    Quick Text &amp; Backup: {sectionRawModal?.name}
+                  </span>
+                </DialogTitle>
+                <DialogDescription>
+                  Copy this section&apos;s data or paste your saved text to restore without retyping.
+                </DialogDescription>
+              </div>
+              <DialogClose onClick={() => setSectionRawModal(null)} />
+            </div>
+          </DialogHeader>
+
+          <DialogBody className="space-y-3">
+            <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+              <span className="text-xs text-slate-600">
+                Section ID: <code className="font-mono text-blue-700 font-bold">{sectionRawModal?.sectionId}</code>
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCopySectionRawText}
+                  className="gap-1.5 text-xs font-semibold"
+                >
+                  {sectionRawModal?.copied ? (
+                    <>
+                      <Check size={14} className="text-emerald-600" />
+                      <span className="text-emerald-600">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={14} />
+                      <span>Copy Text</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <textarea
+              rows={14}
+              value={sectionRawModal?.text || ""}
+              onChange={(e) =>
+                setSectionRawModal((prev) =>
+                  prev ? { ...prev, text: e.target.value } : null
+                )
+              }
+              className="w-full font-mono text-xs p-3 rounded-xl bg-slate-900 text-emerald-400 border border-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Paste JSON text for this section here..."
+            />
+          </DialogBody>
+
+          <DialogFooter className="flex justify-between items-center">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setSectionRawModal(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleApplySectionRawText}
+              disabled={sectionRawModal?.saving || !sectionRawModal?.text?.trim()}
+              className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+            >
+              <Save size={15} />
+              <span>
+                {sectionRawModal?.saving ? "Applying & Saving..." : "Apply & Save to Section"}
+              </span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ===================================================================
           MODAL 6: ALERT DIALOG
