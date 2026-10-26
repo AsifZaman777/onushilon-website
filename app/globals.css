@@ -323,6 +323,7 @@ section{padding:clamp(72px,11vw,150px) 0;position:relative}
 .moment-card{border-radius:var(--r-lg);overflow:hidden;background:var(--ink2);border:1px solid rgba(246,247,242,.12);cursor:pointer;display:flex;flex-direction:column;transition:transform .3s ease,box-shadow .3s ease}
 .moment-card:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(0,0,0,.4);border-color:var(--gold)}
 .moment-img-wrap{position:relative;height:300px;overflow:hidden;background:var(--ink)}
+.moment-img-wrap .ph{position:relative;width:100%;height:100%;overflow:hidden}
 .moment-img-wrap img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s ease}
 .moment-card:hover .moment-img-wrap img{transform:scale(1.05)}
 .moment-badge{position:absolute;top:14px;left:14px;background:rgba(15,42,67,.85);backdrop-filter:blur(8px);color:#fff;font-size:.8rem;font-weight:700;padding:5px 12px;border-radius:99px;z-index:2}
@@ -335,7 +336,8 @@ section{padding:clamp(72px,11vw,150px) 0;position:relative}
 /* lightbox */
 .lightbox-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:120;display:grid;place-items:center;padding:24px}
 .lightbox-card{position:relative;max-width:920px;width:100%;background:var(--ink);border-radius:var(--r-lg);overflow:hidden;border:1px solid rgba(246,247,242,.2);box-shadow:0 35px 70px rgba(0,0,0,.6)}
-.lightbox-img-wrap{width:100%;max-height:550px;overflow:hidden;background:#000}
+.lightbox-img-wrap{width:100%;max-height:550px;overflow:hidden;background:#000;position:relative}
+.lightbox-img-wrap .ph{position:relative;width:100%;height:480px;overflow:hidden}
 .lightbox-img-wrap img{width:100%;height:100%;object-fit:contain;display:block}
 .lightbox-info{padding:22px 28px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;color:var(--paper)}
 .lightbox-close{position:absolute;top:18px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;display:grid;place-items:center;font-size:1.3rem;cursor:pointer;border:1px solid rgba(255,255,255,.2);z-index:3;transition:all .2s ease}

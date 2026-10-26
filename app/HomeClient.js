@@ -23,7 +23,7 @@ import {
 import LanguageSwitcher from "../lib/i18n/LanguageSwitcher";
 import { COURSE_CATEGORIES } from "../lib/i18n/coursesData";
 import { MENTOR_CATEGORIES } from "../lib/i18n/mentorsData";
-import { MOMENTS_CATEGORIES } from "../lib/i18n/momentsData";
+import { MOMENTS_CATEGORIES, MOMENTS } from "../lib/i18n/momentsData";
 import { getHeroStreams } from "../lib/i18n/heroStreams";
 import {
   DynamicContentProvider,
@@ -33,7 +33,9 @@ import SmartImage from "../components/SmartImage";
 
 /* Optimised (next/image) picture; shows a neutral skeleton until the image decodes */
 const Pic = ({ k, src, alt = "", cls = "", style, children, priority = false, sizes }) => {
-  const imgSrc = src || (k && (k.startsWith("http") || k.startsWith("/") ? k : IMG[k]));
+  const raw = src || k;
+  const imgSrc =
+    raw && (typeof raw === "string" && (raw.startsWith("http") || raw.startsWith("/")) ? raw : IMG[raw] || raw);
   return (
     <div className={`ph ${cls}`} style={style}>
       {imgSrc && (
@@ -1252,23 +1254,50 @@ function Moments({ onOpenLightbox }) {
   const { dict, lang } = useI18n();
   const { dynamicMoments } = useDynamicContent();
   const cats = MOMENTS_CATEGORIES[lang] || MOMENTS_CATEGORIES.bn;
-  const momentsList = dynamicMoments.map((m) => ({
-    id: m.id,
-    t: lang === "en" ? m.title_en : m.title_bn || m.title_en,
-    tag: lang === "en" ? m.badge_en : m.badge_bn || m.badge_en,
-    c: m.category || "Robotics",
-    desc: lang === "en" ? m.desc_en || "" : m.desc_bn || m.desc_en || "",
-    img: m.image_url,
-    src: m.image_url,
-  }));
 
+  // Fall back to authentic localized static moments if dynamic moments are not available
+  const staticMoments = MOMENTS[lang] || MOMENTS.bn || MOMENTS.en || [];
+  const rawList =
+    dynamicMoments && Array.isArray(dynamicMoments) && dynamicMoments.length > 0
+      ? dynamicMoments
+      : staticMoments;
+
+  const momentsList = rawList.map((m) => {
+    const rawImg = m.image_url || m.img || m.src || (IMG[m.id] ? m.id : "");
+    const resolvedImg =
+      (rawImg && (typeof rawImg === "string" && (rawImg.startsWith("http") || rawImg.startsWith("/")) ? rawImg : IMG[rawImg])) ||
+      IMG[m.id] ||
+      rawImg ||
+      "";
+
+    return {
+      id: m.id,
+      t: lang === "en" ? m.title_en || m.t : m.title_bn || m.t || m.title_en,
+      tag: lang === "en" ? m.badge_en || m.tag : m.badge_bn || m.tag || m.badge_en,
+      c: m.category || m.c || "Robotics & STEM",
+      desc: lang === "en" ? m.desc_en || m.desc || "" : m.desc_bn || m.desc || m.desc_en || "",
+      img: resolvedImg,
+      src: resolvedImg,
+    };
+  });
 
   const [activeCatId, setActiveCatId] = useState("all");
 
   const list =
     activeCatId === "all"
       ? momentsList
-      : momentsList.filter((m) => m.c === activeCatId);
+      : momentsList.filter((m) => {
+          if (!m.c) return false;
+          if (m.c === activeCatId) return true;
+          const it = m.c.toLowerCase();
+          const f = activeCatId.toLowerCase();
+          if (f.includes("robot") && (it.includes("robot") || it.includes("stem"))) return true;
+          if (f.includes("art") && (it.includes("art") || it.includes("craft") || it.includes("paint"))) return true;
+          if (f.includes("tech") && (it.includes("tech") || it.includes("code") || it.includes("coding") || it.includes("hardware") || it.includes("electron"))) return true;
+          if (f.includes("sport") && (it.includes("sport") || it.includes("karate") || it.includes("active") || it.includes("martial"))) return true;
+          if (f.includes("academic") && (it.includes("academic") || it.includes("class") || it.includes("science") || it.includes("math"))) return true;
+          return false;
+        });
 
   return (
     <section id="moments" className="moments-sec">
@@ -1316,8 +1345,11 @@ function Moments({ onOpenLightbox }) {
               >
                 <div className="moment-img-wrap">
                   <Pic
+                    src={m.img}
                     k={m.img}
                     alt={m.t}
+                    cls="moment-ph"
+                    style={{ width: "100%", height: "100%" }}
                     sizes="(max-width: 760px) 100vw, 50vw"
                   />
                   <span className="moment-badge">{m.tag}</span>
@@ -1360,10 +1392,12 @@ function LightboxModal({ activeIndex, items, onClose, onNavigate }) {
     onNavigate((activeIndex + 1) % items.length);
   };
 
+  const rawCurrentImg = current.src || current.img || current.k || "";
   const imgSrc =
-    current.src ||
-    (current.img && IMG[current.img]) ||
-    (current.k && IMG[current.k]);
+    (rawCurrentImg && (typeof rawCurrentImg === "string" && (rawCurrentImg.startsWith("http") || rawCurrentImg.startsWith("/")) ? rawCurrentImg : IMG[rawCurrentImg])) ||
+    IMG[current.id] ||
+    rawCurrentImg ||
+    "";
   const title = current.t || current.title || dict.lightbox.defaultTitle;
   const cat = current.c || current.tag || current.badge || dict.lightbox.defaultCat;
   const desc = current.desc || current.title || "";
